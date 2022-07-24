@@ -441,7 +441,7 @@ def func2min(params, sim, exp_x, exp_y, num_of_points, sat, peak, x, y, w, xs, y
     # Normalizer for the function to match the plotted values
     normalize = guiVars.normalizevar.get()
     # Initialize the interpolated y values
-    y_interp = [0 for i in range(len(exp_x))]
+    y_interp = []
     """
     List for the interpolated values of the simulated y at each energy value of the experimental spectrum
     """
@@ -471,7 +471,7 @@ def func2min(params, sim, exp_x, exp_y, num_of_points, sat, peak, x, y, w, xs, y
     for g, h in enumerate(exp_x):
         if h > min(xfinal) + xoff and h < max(xfinal) + xoff:
             # Get the values of the interpolation for the experimental x values
-            y_interp[g] = f_interpolate(h)
+            y_interp.append(f_interpolate(h))
             exp_y_f.append(exp_y[g])
     
     # Return the normalized function
@@ -1129,7 +1129,7 @@ def plot_stick(sim, f, graph_area):
                         b1 = 0
                         for ind, key in enumerate(generalVars.label1):
                             # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_stick_val_ind = updateSatStickTransitionVals(low_level, high_level, key, sat_stick_val)
+                            sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
                             
                             # Check for at least one satellite transition
                             if len(sat_stick_val_ind) > 1:
@@ -1230,7 +1230,7 @@ def plot_stick(sim, f, graph_area):
                                 # Loop the shake levels read from the shake weights file
                                 for ind, key in enumerate(generalVars.label1):
                                     # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                    sat_stick_val_ind = updateSatStickTransitionVals(low_level, high_level, key, sat_stick_val)
+                                    sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
                                     
                                     # Check for at least one satellite transition
                                     if len(sat_stick_val_ind) > 1:
@@ -1260,7 +1260,7 @@ def plot_stick(sim, f, graph_area):
                                 
                                 for ind, key in enumerate(generalVars.label1):
                                     # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                    sat_stick_val_ind = updateSatStickTransitionVals(low_level, high_level, key, sat_stick_val)
+                                    sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
                                     
                                     # Check for at least one satellite transition
                                     if len(sat_stick_val_ind) > 1:
@@ -1372,7 +1372,7 @@ def plot_stick(sim, f, graph_area):
                         # Loop the shake labels read from the shake weights file
                         for ind, key in enumerate(generalVars.label1):
                             # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_sim_val_ind = updateSatStickTransitionVals(low_level, high_level, key, sat_sim_val)
+                            sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val)
                             
                             # Check if there is at least one satellite transition
                             if len(sat_sim_val_ind) > 1:
@@ -1710,7 +1710,7 @@ def plot_stick(sim, f, graph_area):
                             # Loop the shake labels read from the shake weights file
                             for ind, key in enumerate(generalVars.label1):
                                 # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                sat_sim_val_ind = updateSatStickTransitionVals(low_level, high_level, key, sat_stick_val)
+                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
                                 
                                 # Check if there is at least one satellite transition
                                 if len(sat_sim_val_ind) > 1:
