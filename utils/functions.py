@@ -99,6 +99,57 @@ def V(T, energy, intens, res, width):
     return y
 
 
+# Pseudo-Voigt profile
+def PV(T, energy, intens, res, width, ratio):
+    """ 
+    Function to calculate the Pseudo-Voigt line shape at x with HWHM alpha for a G/L ratio.
+    In this version of the PV we put the simulated experimental resolution in the Gaussian profile and the line's natural width in the Lorentzian profile
+        
+        Args:
+            T: list of x values for which we want the y values of the profile
+            energy: x value of the profile center
+            intens: hight of the profile
+            res: experimental resolution to be added to the profile width
+            width: natural width of the transition for the profile
+            ratio: ratio [0, 1] of the G and L profile mixtures
+        
+        Returns:
+            y: list of y values for each of the x values in T
+    """
+    
+    y = ratio * np.array(G(T, energy, intens, res, 0)) + (1 - ratio) * np.array(L(T, energy, intens, 0, width))
+    
+    return y
+
+# Single function to call when calculating the line profile and where we can add more profiles in the future
+def Profile(fit_type, T, energy, intens, res, width, ratio = 0.5):
+    """ 
+    Function to calculate the line shape profile, according to the selection in the interface.
+    Here we can later add more profiles and they will be properly used where they are needed.
+    When adding a profile, add the corresponding button in lines 753-757 of interface.py
+        
+        Args:
+            fit_type: selected profile
+            T: list of x values for which we want the y values of the profile
+            energy: x value of the profile center
+            intens: hight of the profile
+            res: experimental resolution to be added to the profile width
+            width: natural width of the transition for the profile
+            ratio: ratio [0, 1] of the G and L profile mixtures
+        
+        Returns:
+            y: list of y values for each of the x values in T
+    """
+    
+    if fit_type == 'Voigt':
+        return V(T, energy, intens, res, width)
+    elif fit_type == 'PVoigt':
+        return PV(T, energy, intens, res, width, ratio)
+    elif fit_type == 'Lorentzian':
+        return L(T, energy, intens, res, width)
+    elif fit_type == 'Gaussian':
+        return G(T, energy, intens, res, width)
+
 
 # --------------------------------------------------------- #
 #                                                           #
@@ -225,12 +276,8 @@ def y_calculator(sim, transition_type, fit_type, xfinal, x, y, w, xs, ys, ws, re
             for i in range(len(k)):
                 # Depending on the profile selected add the y values of the calculated profile to the y values of this transition
                 # This profile is calculated across the entire simulated range of x values
-                if fit_type == 'Voigt':
-                    yfinal[j] = np.add(yfinal[j], V(xfinal, x[j][i], y[j][i], res, w[j][i]))
-                elif fit_type == 'Lorentzian':
-                    yfinal[j] = np.add(yfinal[j], L(xfinal, x[j][i], y[j][i], res, w[j][i]))
-                elif fit_type == 'Gaussian':
-                    yfinal[j] = np.add(yfinal[j], G(xfinal, x[j][i], y[j][i], res, w[j][i]))
+                yfinal[j] = np.add(yfinal[j], Profile(fit_type, xfinal, x[j][i], y[j][i], res, w[j][i], guiVars.pv_ratio.get()))
+                
                 # Add a proportionate amount of progress to the current progress value
                 b1 += 100 / (len(y) * len(k))
                 # Set the progress on the interface
@@ -252,12 +299,8 @@ def y_calculator(sim, transition_type, fit_type, xfinal, x, y, w, xs, ys, ws, re
         for j, k in enumerate(ys):
             for l, m in enumerate(k):
                 for i, n in enumerate(m):
-                    if fit_type == 'Voigt':
-                        yfinals[j][l] = np.add(yfinals[j][l], V(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i]))
-                    elif fit_type == 'Lorentzian':
-                        yfinals[j][l] = np.add(yfinals[j][l], L(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i]))
-                    elif fit_type == 'Gaussian':
-                        yfinals[j][l] = np.add(yfinals[j][l], G(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i]))
+                    yfinal[j] = np.add(yfinal[j], Profile(fit_type, xfinal, x[j][i], y[j][i], res, w[j][i], guiVars.pv_ratio.get()))
+                    
                     b1 += 100 / (len(ys) * len(generalVars.label1) * len(m))
                     guiVars.progress_var.set(b1)
                     sim.update_idletasks()
@@ -273,12 +316,8 @@ def y_calculator(sim, transition_type, fit_type, xfinal, x, y, w, xs, ys, ws, re
         # Diagram block
         for j, k in enumerate(y):
             for i, n in enumerate(k):
-                if fit_type == 'Voigt':
-                    yfinal[j] = np.abs(np.add(yfinal[j], V(xfinal, x[j][i], y[j][i], res, w[j][i])))
-                elif fit_type == 'Lorentzian':
-                    yfinal[j] = np.abs(np.add(yfinal[j], L(xfinal, x[j][i], y[j][i], res, w[j][i])))
-                elif fit_type == 'Gaussian':
-                    yfinal[j] = np.abs(np.add(yfinal[j], G(xfinal, x[j][i], y[j][i], res, w[j][i])))
+                yfinal[j] = np.add(yfinal[j], Profile(fit_type, xfinal, x[j][i], y[j][i], res, w[j][i], guiVars.pv_ratio.get()))
+                
                 b1 += 200 / (len(y) * len(k))
                 guiVars.progress_var.set(b1)
                 sim.update_idletasks()
@@ -295,12 +334,8 @@ def y_calculator(sim, transition_type, fit_type, xfinal, x, y, w, xs, ys, ws, re
         for j, k in enumerate(ys):
             for l, m in enumerate(ys[j]):
                 for i, n in enumerate(m):
-                    if fit_type == 'Voigt':
-                        yfinals[j][l] = np.abs(np.add(yfinals[j][l], V(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i])))
-                    elif fit_type == 'Lorentzian':
-                        yfinals[j][l] = np.abs(np.add(yfinals[j][l], L(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i])))
-                    elif fit_type == 'Gaussian':
-                        yfinals[j][l] = np.abs(np.add(yfinals[j][l], G(xfinal, xs[j][l][i], ys[j][l][i], res, ws[j][l][i])))
+                    yfinal[j] = np.add(yfinal[j], Profile(fit_type, xfinal, x[j][i], y[j][i], res, w[j][i], guiVars.pv_ratio.get()))
+                
                     b1 += 100 / (len(ys) * len(generalVars.label1) * len(m))
                     guiVars.progress_var.set(b1)
                     sim.update_idletasks()
@@ -867,7 +902,7 @@ def getBoundedExp(xe, ye, sigma_exp, enoffset, num_of_points, x_mx, x_mn):
 # --------------------------------------------------------- #
 
 # Stick plotter. Plots a stick for the transition
-def stem_ploter(transition_values, transition, spec_type, ind, key):
+def stem_ploter(a, transition_values, transition, spec_type, ind, key):
     """
     Stick plotter function. Plots a stick for the transition
         
@@ -1084,7 +1119,7 @@ def plot_stick(sim, f, graph_area):
                             bad_selection += 1
                         
                         # Plot the transition
-                        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
+                        stem_ploter(graph_area, diag_stick_val, transition, 'Diagram', 0, 0)
                     elif sat == 'Satellites':
                         # Check if there is no data for the selected transition
                         if not sat_stick_val:
@@ -1104,7 +1139,7 @@ def plot_stick(sim, f, graph_area):
                             
                             # Check for at least one satellite transition
                             if len(sat_stick_val_ind) > 1:
-                                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
+                                stem_ploter(graph_area, sat_stick_val_ind, transition, 'Satellites', ind, key)
                             
                             # Update the progress bar
                             b1 += 100 / len(generalVars.label1)
@@ -1117,7 +1152,7 @@ def plot_stick(sim, f, graph_area):
                             messagebox.showwarning("Wrong Transition", "Diagram info. for " + transition + " is not Available")
                             bad_selection += 1
                         
-                        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
+                        stem_ploter(graph_area, diag_stick_val, transition, 'Diagram', 0, 0)
                         
                         # Satellite block
                         if not sat_stick_val:
@@ -1133,7 +1168,7 @@ def plot_stick(sim, f, graph_area):
                             
                             # Check for at least one satellite transition
                             if len(sat_stick_val_ind) > 1:
-                                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
+                                stem_ploter(graph_area, sat_stick_val_ind, transition, 'Satellites', ind, key)
                             
                             # Update the progress bar
                             b1 += 100 / len(generalVars.label1)
@@ -1160,7 +1195,7 @@ def plot_stick(sim, f, graph_area):
                         bad_selection += 1
                     
                     # Plot the transition
-                    stem_ploter(aug_stick_val, transition, 'Auger', 0, 0)
+                    stem_ploter(graph_area, aug_stick_val, transition, 'Auger', 0, 0)
 
                 # Set the labels for the axis
                 graph_area.set_xlabel('Energy (eV)')
@@ -1214,7 +1249,7 @@ def plot_stick(sim, f, graph_area):
                                     messagebox.showwarning("Wrong Transition", transition + " is not Available for charge state: " + cs)
                                     bad_selection += 1
                                 
-                                stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
+                                stem_ploter(graph_area, diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
                             elif sat == 'Satellites':
                                 # Check if there is no data for the selected transition
                                 if not sat_stick_val:
@@ -1234,7 +1269,7 @@ def plot_stick(sim, f, graph_area):
                                     
                                     # Check for at least one satellite transition
                                     if len(sat_stick_val_ind) > 1:
-                                        stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
+                                        stem_ploter(graph_area, sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
                                     
                                     # Update the progress bar
                                     b1 += 100 / len(generalVars.label1)
@@ -1247,7 +1282,7 @@ def plot_stick(sim, f, graph_area):
                                     messagebox.showwarning("Wrong Transition", "Diagram info. for " + transition + " is not Available")
                                     bad_selection += 1
                                 
-                                stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
+                                stem_ploter(graph_area, diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
                                 
                                 # Satellite block
                                 if not sat_stick_val:
@@ -1264,7 +1299,7 @@ def plot_stick(sim, f, graph_area):
                                     
                                     # Check for at least one satellite transition
                                     if len(sat_stick_val_ind) > 1:
-                                        stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
+                                        stem_ploter(graph_area, sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
                                     
                                     # Update the progress bar
                                     b1 += 100 / len(generalVars.label1)
@@ -1309,7 +1344,7 @@ def plot_stick(sim, f, graph_area):
                                 messagebox.showwarning("Wrong Transition", "Auger info. for " + transition + " is not Available for charge state: " + cs)
                                 bad_selection += 1
                             
-                            stem_ploter(aug_stick_val, cs + ' ' + transition, 'Auger_CS', 0, 0)
+                            stem_ploter(graph_area, aug_stick_val, cs + ' ' + transition, 'Auger_CS', 0, 0)
 
                         # Set the labels for the axis
                         graph_area.set_xlabel('Energy (eV)')

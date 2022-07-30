@@ -38,13 +38,13 @@ As well as static variables that are used to list fixed data such as transition 
 No functions should be defined in this module.
 &#34;&#34;&#34;
 
-#Chi^2 of the current fit
+# Chi^2 of the current fit
 chi_sqrd = 0
 &#34;&#34;&#34;
 Variable used to hold the current value of the reduced chi^2 calculated in the current simulation
 &#34;&#34;&#34;
 
-#Mix Values of the various charge states used in the simulation
+# Mix Values of the various charge states used in the simulation
 PCS_radMixValues = []
 &#34;&#34;&#34;
 Variable used to hold the mixture values for the positive charge states when performing a radiative simulation
@@ -62,66 +62,66 @@ NCS_augMixValues = []
 Variable used to hold the mixture values for the negative charge states when performing an auger simulation
 &#34;&#34;&#34;
 
-#Final y of the simulated spectrum (Rad or Aug, no satellite) for each transition
+# Final y of the simulated spectrum (Rad or Aug, no satellite) for each transition
 yfinal = []
 &#34;&#34;&#34;
 Variable to hold the final y values calculated for each of the simulated transitions
 &#34;&#34;&#34;
-#Total y of the simulated spectrum summed over all simulated lines
+# Total y of the simulated spectrum summed over all simulated lines
 ytot = []
 &#34;&#34;&#34;
 Variable to hold the final total y values for all simulated transitions
 &#34;&#34;&#34;
-#Final y of the simulated satellite lines for each Rad transition
+# Final y of the simulated satellite lines for each Rad transition
 yfinals = []
 &#34;&#34;&#34;
 Variable to hold the final y values calculated for each of the possible satellite transitions in each of the simulated diagram transitions
 &#34;&#34;&#34;
 
-#File names of the radiative transitions for each charge state found
+# File names of the radiative transitions for each charge state found
 radiative_files = []
 &#34;&#34;&#34;
 Variable to hold the names of the radiative rates files for each charge state found
 &#34;&#34;&#34;
-#File names of the auger transitions for each charge state found
+# File names of the auger transitions for each charge state found
 auger_files = []
 &#34;&#34;&#34;
 Variable to hold the names of the auger rates files for each charge state found
 &#34;&#34;&#34;
-#File names of the satellite transitions for each charge state found
+# File names of the satellite transitions for each charge state found
 sat_files = []
 &#34;&#34;&#34;
 Variable to hold the names of the satellite rates files for each charge state found
 &#34;&#34;&#34;
 
-#Raw data read from the radiative transitions file to be simulated
+# Raw data read from the radiative transitions file to be simulated
 lineradrates = []
 &#34;&#34;&#34;
 Variable to hold the data from the radiative rates read from file
 &#34;&#34;&#34;
-#Raw data read from the satellite transitions file to be simulated
+# Raw data read from the satellite transitions file to be simulated
 linesatellites = []
 &#34;&#34;&#34;
 Variable to hold the data from the satellite rates read from file
 &#34;&#34;&#34;
-#Raw data read from the auger transitions file to be simulated
+# Raw data read from the auger transitions file to be simulated
 lineauger = []
 &#34;&#34;&#34;
 Variable to hold the data from the auger rates read from file
 &#34;&#34;&#34;
-#Raw data read from the shake wheights file to be simulated
+# Raw data read from the shake wheights file to be simulated
 shakeweights = []
 &#34;&#34;&#34;
 Variable to hold the shake weights read from file
 &#34;&#34;&#34;
-#Variable to store the labels read from the shake weights file
+# Variable to store the labels read from the shake weights file
 label1 = []
 &#34;&#34;&#34;
 Variable to hold the shake labels read from file
 &#34;&#34;&#34;
 
 
-#Raw data read from the radiative transitions files to be simulated, for each charge state split by positive and negative CS
+# Raw data read from the radiative transitions files to be simulated, for each charge state split by positive and negative CS
 lineradrates_PCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the radiative rates read from file for each of the positive charge states
@@ -130,7 +130,7 @@ lineradrates_NCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the radiative rates read from file for each of the negative charge states
 &#34;&#34;&#34;
-#Order of the charge states read and stored in the previous variables
+# Order of the charge states read and stored in the previous variables
 rad_PCS = []
 &#34;&#34;&#34;
 Variable to hold the order that the positive charge states were read for the radiative rates
@@ -140,7 +140,7 @@ rad_NCS = []
 Variable to hold the order that the negative charge states were read for the radiative rates
 &#34;&#34;&#34;
 
-#Raw data read from the auger transitions files to be simulated, for each charge state split by positive and negative CS
+# Raw data read from the auger transitions files to be simulated, for each charge state split by positive and negative CS
 lineaugrates_PCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the auger rates read from file for each of the positive charge states
@@ -149,7 +149,7 @@ lineaugrates_NCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the auger rates read from file for each of the negative charge states
 &#34;&#34;&#34;
-#Order of the charge states read and stored in the previous variables
+# Order of the charge states read and stored in the previous variables
 aug_PCS = []
 &#34;&#34;&#34;
 Variable to hold the order that the positive charge states were read for the auger rates
@@ -159,7 +159,7 @@ aug_NCS = []
 Variable to hold the order that the negative charge states were read for the auger rates
 &#34;&#34;&#34;
 
-#Raw data read from the satellite transitions files to be simulated, for each charge state split by positive and negative CS
+# Raw data read from the satellite transitions files to be simulated, for each charge state split by positive and negative CS
 linesatellites_PCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the satellite rates read from file for each of the positive charge states
@@ -168,7 +168,7 @@ linesatellites_NCS = []
 &#34;&#34;&#34;
 Variable to hold the data from the satellite rates read from file for each of the negative charge states
 &#34;&#34;&#34;
-#Order of the charge states read and stored in the previous variables
+# Order of the charge states read and stored in the previous variables
 sat_PCS = []
 &#34;&#34;&#34;
 Variable to hold the order that the positive charge states were read for the satellite rates
@@ -178,18 +178,18 @@ sat_NCS = []
 Variable to hold the order that the negative charge states were read for the satellite rates
 &#34;&#34;&#34;
 
-#Flag to check if a file containing the ion population data is present
+# Flag to check if a file containing the ion population data is present
 Ionpop_exists = False
 &#34;&#34;&#34;
 Variable to know if an ion population file was found. Not currently in used
 &#34;&#34;&#34;
-#Raw data read from the ion population file
+# Raw data read from the ion population file
 ionpopdata = []
 &#34;&#34;&#34;
 Variable to hold the data read from the ion populations file
 &#34;&#34;&#34;
 
-#Correspondence between Siegbahn notation and relativistic orbitals
+# Correspondence between Siegbahn notation and relativistic orbitals
 labeldict = {&#39;K1&#39;: &#39;1s&#39;, &#39;L1&#39;: &#39;2s&#39;, &#39;L2&#39;: &#39;2p*&#39;, &#39;L3&#39;: &#39;2p&#39;, &#39;M1&#39;: &#39;3s&#39;, &#39;M2&#39;: &#39;3p*&#39;, &#39;M3&#39;: &#39;3p&#39;, &#39;M4&#39;: &#39;3d*&#39;,
              &#39;M5&#39;: &#39;3d&#39;, &#39;N1&#39;: &#39;4s&#39;, &#39;N2&#39;: &#39;4p*&#39;, &#39;N3&#39;: &#39;4p&#39;, &#39;N4&#39;: &#39;4d*&#39;, &#39;N5&#39;: &#39;4d&#39;, &#39;N6&#39;: &#39;4f*&#39;, &#39;N7&#39;: &#39;4f&#39;,
              &#39;O1&#39;: &#39;5s&#39;, &#39;O2&#39;: &#39;5p*&#39;, &#39;O3&#39;: &#39;5p&#39;, &#39;O4&#39;: &#39;5d*&#39;, &#39;O5&#39;: &#39;5d&#39;, &#39;O6&#39;: &#39;5f*&#39;, &#39;O7&#39;: &#39;5f&#39;, &#39;O8&#39;: &#39;5g*&#39;,
@@ -422,7 +422,7 @@ the_aug_dictionary = {
 Auger transition dictionary. This is used to list, select and control which transitions are to be simulated
 &#34;&#34;&#34;
 
-#Values to initialize the periodic table (First window)
+# Values to initialize the periodic table (First window)
 per_table = [[1, 1.0079, &#39; Hydrogen &#39;, &#39; H &#39;, 0.09, &#39;grey&#39;, 1, 1, &#39; 1s1 &#39;, 13.5984],
              [2, 4.0026, &#39; Helium &#39;, &#39; He &#39;, 0.18, &#39;cyan&#39;, 1, 18, &#39; 1s2 &#39;, 24.5874],
              [3, 6.941, &#39; Lithium &#39;, &#39; Li &#39;, 0.53, &#39;orange&#39;, 2, 1, &#39; [He] 2s1 &#39;, 5.3917],
@@ -540,7 +540,7 @@ per_table = [[1, 1.0079, &#39; Hydrogen &#39;, &#39; H &#39;, 0.09, &#39;grey&#3
              [115, 277, &#39; Ununpentium &#39;, &#39; Uup &#39;, &#39;?&#39;, &#39;grey&#39;, 7, 15, &#39; &#39;, &#39;?&#39;],
              [116, 277, &#39; Livermorium &#39;, &#39; Lv &#39;, &#39;?&#39;, &#39;grey&#39;, 7, 16, &#39; &#39;, &#39;?&#39;],
              [117, 277, &#39; Ununseptium &#39;, &#39; Uus &#39;, &#39;?&#39;, &#39;grey&#39;, 7, 17, &#39; &#39;, &#39;?&#39;],
-             [118, 277, &#39; Ununoctium &#39;, &#39; Uuo &#39;, &#39;?&#39;, &#39;grey&#39;, 7, 18, &#39; &#39;, &#39;?&#39;] ]
+             [118, 277, &#39; Ununoctium &#39;, &#39; Uuo &#39;, &#39;?&#39;, &#39;grey&#39;, 7, 18, &#39; &#39;, &#39;?&#39;]]
 &#34;&#34;&#34;
 Values to initialize the periodic table (First window)
 &#34;&#34;&#34;</code></pre>

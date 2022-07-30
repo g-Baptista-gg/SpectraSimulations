@@ -34,29 +34,35 @@ Module that implements the line and level widths interface.
 The interface barebones is implemented but no data is being processed and shown.
 &#34;&#34;&#34;
 
-#GUI Imports
+# GUI Imports
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 
-#File IO Imports
+# File IO Imports
 from utils.fileIO import file_namer, write_to_xls
 
-#GUI utils: destroy window
+# GUI utils: destroy window
 from utils.interface import destroy
 
+#Data import for variable management
+import data.variables as generalVars
 
-def fetchWidths(dir_path, z):
+
+def fetchWidths(dir_path, element):
     &#34;&#34;&#34;
     Function to run the cross sections interface
-        
+
         Args:
             dir_path: full path to the location where the application is ran
-            z: z value of the element to simulate
-            
+            element: list with the [z value, element name] to simulate
+
         Returns:
             Not fully implemented, only the base interface
     &#34;&#34;&#34;
+    
+    z = element[0]
+    
     try:
         # This can be moved to the fileIO module later
         # Path to the file with the widths for this element
@@ -74,7 +80,7 @@ def fetchWidths(dir_path, z):
         &#34;&#34;&#34;
         # Window title
         atdata.title(&#34;Level and Line Widths&#34;)
-        
+
         # Make a frame in the window and initialize a grid positioning and resising for the results
         atdatayields = ttk.Frame(atdata, padding=&#34;3 3 12 12&#34;)
         &#34;&#34;&#34;
@@ -83,18 +89,17 @@ def fetchWidths(dir_path, z):
         atdatayields.grid(column=0, row=0, sticky=(N, W, E, S))
         atdatayields.columnconfigure(0, weight=1)
         atdatayields.rowconfigure(0, weight=1)
-        
+
         # Label objects to show the level and line widths
         ttk.Label(atdatayields, text=&#34;Level Widths&#34;).grid(column=0, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Line Widths&#34;).grid(column=5, row=0, sticky=W, columnspan=2)
-        
+
         # Buttons for the export and program flow functions
         ttk.Button(master=atdatayields, text=&#39;Export&#39;, command=lambda: write_to_xls(2)).grid(column=12, row=0, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Back&#39;, command=lambda: destroy(atdata)).grid(column=12, row=1, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Exit&#39;, command=lambda: destroy(atdata)).grid(column=12, row=2, sticky=W, columnspan=2)
-        
+
         # NOT FURTHER IMPLEMENTED
-        
     except FileNotFoundError:
         messagebox.showerror(&#34;Error&#34;, &#34;Required File is Missing&#34;)</code></pre>
 </details>
@@ -107,13 +112,13 @@ def fetchWidths(dir_path, z):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="SpectraSimulations_git.aps.LvlWidths.fetchWidths"><code class="name flex">
-<span>def <span class="ident">fetchWidths</span></span>(<span>dir_path, z)</span>
+<span>def <span class="ident">fetchWidths</span></span>(<span>dir_path, element)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to run the cross sections interface</p>
 <pre><code>Args:
     dir_path: full path to the location where the application is ran
-    z: z value of the element to simulate
+    element: list with the [z value, element name] to simulate
 
 Returns:
     Not fully implemented, only the base interface
@@ -122,17 +127,20 @@ Returns:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def fetchWidths(dir_path, z):
+<pre><code class="python">def fetchWidths(dir_path, element):
     &#34;&#34;&#34;
     Function to run the cross sections interface
-        
+
         Args:
             dir_path: full path to the location where the application is ran
-            z: z value of the element to simulate
-            
+            element: list with the [z value, element name] to simulate
+
         Returns:
             Not fully implemented, only the base interface
     &#34;&#34;&#34;
+    
+    z = element[0]
+    
     try:
         # This can be moved to the fileIO module later
         # Path to the file with the widths for this element
@@ -150,7 +158,7 @@ Returns:
         &#34;&#34;&#34;
         # Window title
         atdata.title(&#34;Level and Line Widths&#34;)
-        
+
         # Make a frame in the window and initialize a grid positioning and resising for the results
         atdatayields = ttk.Frame(atdata, padding=&#34;3 3 12 12&#34;)
         &#34;&#34;&#34;
@@ -159,18 +167,17 @@ Returns:
         atdatayields.grid(column=0, row=0, sticky=(N, W, E, S))
         atdatayields.columnconfigure(0, weight=1)
         atdatayields.rowconfigure(0, weight=1)
-        
+
         # Label objects to show the level and line widths
         ttk.Label(atdatayields, text=&#34;Level Widths&#34;).grid(column=0, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Line Widths&#34;).grid(column=5, row=0, sticky=W, columnspan=2)
-        
+
         # Buttons for the export and program flow functions
         ttk.Button(master=atdatayields, text=&#39;Export&#39;, command=lambda: write_to_xls(2)).grid(column=12, row=0, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Back&#39;, command=lambda: destroy(atdata)).grid(column=12, row=1, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Exit&#39;, command=lambda: destroy(atdata)).grid(column=12, row=2, sticky=W, columnspan=2)
-        
+
         # NOT FURTHER IMPLEMENTED
-        
     except FileNotFoundError:
         messagebox.showerror(&#34;Error&#34;, &#34;Required File is Missing&#34;)</code></pre>
 </details>

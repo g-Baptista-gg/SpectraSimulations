@@ -7,6 +7,8 @@ functions to initialize interface elements, functions to update the elements and
 # GUI Imports
 from tkinter import *
 from tkinter import ttk
+from tkinter import simpledialog
+from tkinter import messagebox
 
 # Matplotlib imports for plotting and tkinter compatibility
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -157,7 +159,11 @@ Variable to know which type of simulation to perform (stick, simulation, with or
 # Variable to know which type of profile we want to simulate fro each line
 type_var = None
 """
-Variable to know which type of profile we want to simulate fro each line
+Variable to know which type of profile we want to simulate for each line
+"""
+pv_ratio = None
+"""
+Variable to hold the G/L ratio for the Pseudo-Voigt profile, when chosen
 """
 # Variable to know which type of exiting mechanism we want to consider in the simulation (currently not implemented)
 exc_mech_var = None
@@ -558,7 +564,7 @@ def setupVars(p):
     # Use global to be able to initialize and change the values of the global interface variables
     global _parent, totalvar, yscale_log, xscale_log, autofitvar, normalizevar, loadvar, effic_var
     global exp_resolution, yoffset, energy_offset, number_points, x_max, x_min, progress_var, label_text
-    global satelite_var, choice_var, type_var, exc_mech_var
+    global satelite_var, choice_var, type_var, pv_ratio, exc_mech_var
 
     # setup the parent object to bind stuff to
     _parent = p
@@ -623,6 +629,8 @@ def setupVars(p):
     choice_var = StringVar(value='Simulation')
     # Initialize the profile type to lorentzian
     type_var = StringVar(value='Lorentzian')
+    # Initialize the PV G/L ratio to 1
+    pv_ratio = DoubleVar(master=_parent, value=0.5)
     # Initialize the exitation mechanism to empty as this is not yet implemented
     exc_mech_var = StringVar(value='')
 
@@ -684,6 +692,16 @@ def setupButtonArea(buttons_frame, buttons_frame2, buttons_frame3, buttons_frame
 
 # Setup the dropdown menus on the top toolbar
 
+def inputRatio():
+    global pv_ratio
+    
+    ratio = simpledialog.askfloat("Pseudo-Voigt G/L ratio", "G/L Ratio:")
+    
+    if ratio > 1.0 or ratio < 0.0:
+        messagebox.showerror("Ratio Error", "G/L ratio has to be between 0 and 1. Setting it to 0.5")
+        pv_ratio.set(0.5)
+    
+    pv_ratio.set(ratio)
 
 def setupMenus(CS_exists):
     """
@@ -752,6 +770,7 @@ def setupMenus(CS_exists):
     # Add the Fit type dropdown menu and the buttons bound to the corresponding variables and functions
     my_menu.add_cascade(label="Fit Type", menu=fit_type_menu)
     fit_type_menu.add_checkbutton(label='Voigt', variable=type_var, onvalue='Voigt', offvalue='')
+    fit_type_menu.add_checkbutton(label='Pseudo-Voigt', variable=type_var, onvalue='PVoigt', offvalue='', command=inputRatio)
     fit_type_menu.add_checkbutton(label='Lorentzian', variable=type_var, onvalue='Lorentzian', offvalue='')
     fit_type_menu.add_checkbutton(label='Gaussian', variable=type_var, onvalue='Gaussian', offvalue='')
     

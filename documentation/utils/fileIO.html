@@ -37,18 +37,18 @@ Exporting to and importing from files is handled by these functions.
 I/O in aps 1, 2 and 3 is not yet implemented in this module.
 &#34;&#34;&#34;
 
-#GUI Imports for warnings and interface to select files
+# GUI Imports for warnings and interface to select files
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 
-#Data import for variable management
+# Data import for variable management
 from data.variables import labeldict, the_dictionary, the_aug_dictionary
 import data.variables
 
-#CSV reader import for reading and exporting data
+# CSV reader import for reading and exporting data
 import csv
 
-#OS Imports for file paths
+# OS Imports for file paths
 import os
 
 
@@ -62,12 +62,12 @@ import os
 def file_namer(simulation_or_fit, fit_time, extension):
     &#34;&#34;&#34;
     Function to generate file names
-        
+
         Args:
             simulation_or_fit: prefix for the type of file we want a name for
             fit_time: timestamp to identify the simulation/calculation that this file should correspond
             extension: file extention to be saved as
-            
+
         Returns:
             file_name: final file name to be saved
     &#34;&#34;&#34;
@@ -81,14 +81,16 @@ def file_namer(simulation_or_fit, fit_time, extension):
     &#34;&#34;&#34;
     Final file name
     &#34;&#34;&#34;
-    
+
     return file_name
 
 # Function to save the simulation data into an excel file
+
+
 def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, radiative_files, auger_files, label1, date_and_time):
     &#34;&#34;&#34;
     Function to save the current simulation data into an excel file
-        
+
         Args:
             type_t: type of transitions simulated (diagram, satellite, diagram + satellite, auger)
             xfinal: simulated x values
@@ -101,19 +103,19 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
             auger_files: auger rates file names found for each charge state
             label1: shake weights labels read from the shake weigths file
             date_and_time: timestamp of the simulation for the name of the file saved
-            
+
         Returns:
             Nothing, the file is saved and a message box is shown to the used
     &#34;&#34;&#34;
-    #Print the timestamp of the simulation
+    # Print the timestamp of the simulation
     print(date_and_time)
-    
-    #Generate filename to save the data
+
+    # Generate filename to save the data
     file_title = file_namer(&#34;Simulation&#34;, date_and_time, &#34;.csv&#34;)
     &#34;&#34;&#34;
     Name of the file that is going to be saved. Please use the :func:`file_namer` function to generate names
     &#34;&#34;&#34;
-    
+
     # Initialize the header row of the excel file
     first_line = [&#39;Energy (eV)&#39;]
     &#34;&#34;&#34;
@@ -149,11 +151,11 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
     # ---------------------------------------------------------------------------------------------------------------
     # Add the column for the total y
     first_line += [&#39;Total&#39;]
-    
+
     # Add an intensity offset column if the offset is not 0
     if y0 != 0:
         first_line += [&#39;Total Off&#39;]
-    
+
     # Add 2 columns for the experimental spectrum if it is loaded
     if exp_x != None and exp_y != None:
         first_line += [&#39;Exp Energy (eV)&#39;, &#39;Intensity&#39;]
@@ -194,7 +196,7 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
     else:
         for i, x in enumerate(xfinal):
             matrix[i][0] = x
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the transition data in the respective columns
     for i, y in enumerate(data.variables.yfinal):
@@ -203,32 +205,32 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
             # Write the values in the column
             for row in range(len(y)):
                 matrix[row][transition_columns] = y[row]
-            
+
             transition_columns += 1
-        
+
         # Same for the satellite transitions but we require and extra loop
         if any(data.variables.yfinals[i]) != 0:
             for j, ys in enumerate(data.variables.yfinals[i]):
                 if max(ys) != 0:
                     for row in range(len(y)):
                         matrix[row][transition_columns] = ys[row]
-                    
+
                     transition_columns += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the total y and y + offset values in the matrix if the offset is not 0, otherwise write only the total y
     if y0 != 0:
         for j in range(len(data.variables.ytot)):
             matrix[j][transition_columns] = data.variables.ytot[j]
             matrix[j][transition_columns + 1] = data.variables.ytot[j] + y0
-    
+
         transition_columns += 1
     else:
         for j in range(len(data.variables.ytot)):
             matrix[j][transition_columns] = data.variables.ytot[j]
 
     transition_columns += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the experimental spectrum values
     if exp_x == None and exp_y == None:
@@ -239,7 +241,7 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
             matrix[i][transition_columns + 1] = exp_y[i]
 
         transition_columns += 2
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Retrieve the residue data from the graph object
     if residues_graph == None:
@@ -265,7 +267,7 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
         matrix[0][transition_columns + 4] = data.variables.chi_sqrd
 
         transition_columns += 5
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the mix values in the matrix
     if type_t != &#39;Auger&#39;:
@@ -303,16 +305,16 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
                 else:
                     matrix[i + 1][transition_columns + 2] = data.variables.NCS_augMixValues[idx_n].get()
                     idx_n += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Add the header row
     matrix = [first_line] + matrix
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Print the matrix values in the console to debug
     # for row in matrix:
     #     print(&#39; &#39;.join(map(str, row)))
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the matrix in the file. First open as write to create the file, then we append the remaining lines
     for i, item in enumerate(matrix):
@@ -324,19 +326,21 @@ def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, rad
             with open(file_title, &#39;a&#39;, newline=&#39;&#39;) as csvfile2:
                 w1 = csv.writer(csvfile2, delimiter=&#39;,&#39;, quotechar=&#39;|&#39;, quoting=csv.QUOTE_MINIMAL)
                 w1.writerow(matrix[i])
-    
+
     # Prompt that the data was saved
     messagebox.showinfo(&#34;File Saved&#34;, &#34;Data file has been saved&#34;)
 
 # Function to save the fit report to file
+
+
 def exportFit(time_of_click, report):
     &#34;&#34;&#34;
     Function export the fit parameters calculated
-        
+
         Args:
             time_of_click: timestamp of the fit
             report: the report to be saved
-            
+
         Returns:
             Nothing, the data is saved to file and printed on the console
     &#34;&#34;&#34;
@@ -351,13 +355,15 @@ def exportFit(time_of_click, report):
 # ----------------------------------------------------- #
 
 # Function to request the file with the experimental spectrum and save the file path
+
+
 def load(loadvar):
     &#34;&#34;&#34;
     Function to request the file with the experimental spectrum
-        
+
         Args:
             loadvar: variable where we save the chosen file path
-            
+
         Returns:
             Nothing, the file path is save in the variable
     &#34;&#34;&#34;
@@ -367,13 +373,15 @@ def load(loadvar):
     loadvar.set(fname)
 
 # Function to request the file with the detector efficiency and save the file path
+
+
 def load_effic_file(effic_var):
     &#34;&#34;&#34;
     Function to request the file with the detector efficiency
-        
+
         Args:
             effic_var: variable where we save the chosen file path
-            
+
         Returns:
             Nothing, the file path is save in the variable
     &#34;&#34;&#34;
@@ -383,26 +391,30 @@ def load_effic_file(effic_var):
     effic_var.set(effic_fname)
 
 # Function to read the experimental spectrum as csv and return it as a list
+
+
 def loadExp(file):
     &#34;&#34;&#34;
     Function to read the experimental spectrum as csv
-        
+
         Args:
             file: file path of the experimental spectrum
-            
+
         Returns:
             List with the data still in string format
     &#34;&#34;&#34;
     return list(csv.reader(open(file, &#39;r&#39;, encoding=&#39;utf-8-sig&#39;)))
 
 # Function to read the detector efficiency as csv and return it as a list
+
+
 def loadEfficiency(file):
     &#34;&#34;&#34;
     Function to read the detector efficiency as csv
-        
+
         Args:
             file: file path of the efficiency data
-            
+
         Returns:
             List with the data still in string format
     &#34;&#34;&#34;
@@ -419,10 +431,10 @@ def loadEfficiency(file):
 def readRates(rates_file):
     &#34;&#34;&#34;
     Function to read the rates file
-        
+
         Args:
             rates_file: file path of the rates file
-            
+
         Returns:
             linerates: list with the data still in string format
     &#34;&#34;&#34;
@@ -434,19 +446,21 @@ def readRates(rates_file):
             linerates = list(filter(None, linerates))
             # Delete the header rows
             del linerates[0:2]
-            
+
             return linerates
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Rates File is not Avaliable: &#34; + rates_file)
 
 # Read the shake weights file and return a list with the data and a list with the labels
+
+
 def readShakeWeights(shakeweights_file):
     &#34;&#34;&#34;
     Function to read the shake weights file
-        
+
         Args:
             shakeweights_file: file path of the shake weights file
-            
+
         Returns:
             shakeweights: list with the shake weights in float
             label1: list with the shake labels
@@ -457,16 +471,15 @@ def readShakeWeights(shakeweights_file):
             shakeweights_m = [x.strip(&#39;\n&#39;).split(&#39;,&#39;) for x in shakeweights_f.readlines()]
             shakeweights = []
             label1 = []
-            
+
             # Loop the read values and store them in two lists
             for i in range(len(shakeweights_m)):
                 shakeweights.append(float(shakeweights_m[i][1]))
                 label1.append(shakeweights_m[i][0])
-            
+
             return shakeweights, label1
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Shake Weigths File is not Avaliable&#34;)
-
 
 
 # ----------------------------------------------------- #
@@ -479,12 +492,12 @@ def readShakeWeights(shakeweights_file):
 def searchChargeStates(dir_path, z, identifyer):
     &#34;&#34;&#34;
     Function to search the Charge_States folder for all &#34;identifyer&#34; rate files
-        
+
         Args:
             dir_path: full path of the simulation
             z: z value of the element to simulate
             identifyer: identifyer of the rate files we want to search (intensity, satinty, augrate)
-            
+
         Returns:
             files: file names found in the Charge_States folder with the identifyer
     &#34;&#34;&#34;
@@ -494,20 +507,22 @@ def searchChargeStates(dir_path, z, identifyer):
         # If the name format matches a radiative rates files then append it to the list
         if os.path.isfile(os.path.join(dir_path / str(z) / &#39;Charge_States&#39;, f)) and identifyer in f:
             files.append(f)
-    
+
     return files
 
 # Read the rates files in the files list and return a list with the data split by positive and negative charge states.
 # Also return a list with the order in which the data was stored in the lists
+
+
 def readChargeStates(files, dir_path, z):
     &#34;&#34;&#34;
     Function to read the rates files in the files list
-        
+
         Args:
             files: list of the file names to read
             dir_path: full path of the simulation
             z: z value of the element to simulate
-        
+
         Returns:
             linerates_PCS: lists of the rates read for each positive charge state
             linerates_NCS: lists of the rates read for each negative charge state
@@ -533,7 +548,7 @@ def readChargeStates(files, dir_path, z):
                     linerates_PCS[-1] = list(filter(None, linerates_PCS[-1]))
                     # Delete the header rows from the last list
                     del linerates_PCS[-1][0:2]
-                    
+
                     # Append the charge state value to identify the rates we just appended
                     PCS.append(&#39;+&#39; + file.split(&#39;+&#39;)[1].split(&#39;.&#39;)[0])
                 else:
@@ -543,7 +558,7 @@ def readChargeStates(files, dir_path, z):
                     linerates_NCS[-1] = list(filter(None, linerates_NCS[-1]))
                     # Delete the header rows from the last list
                     del linerates_NCS[-1][0:2]
-                    
+
                     # Append the charge state value to identify the rates we just appended
                     NCS.append(&#39;-&#39; + file.split(&#39;-&#39;)[1].split(&#39;.&#39;)[0])
         except FileNotFoundError:
@@ -552,13 +567,15 @@ def readChargeStates(files, dir_path, z):
     return linerates_PCS, linerates_NCS, PCS, NCS
 
 # Read the ion population file and return a list with the raw data
+
+
 def readIonPop(ionpop_file):
     &#34;&#34;&#34;
     Function to read the ion population file
-        
+
         Args:
             ionpop_file: full path of the ion population file
-            
+
         Returns:
             True: if the ion population file could be open
             ionpopdata: list with the ion population data
@@ -569,7 +586,7 @@ def readIonPop(ionpop_file):
             ionpopdata = [x.strip(&#39;\n&#39;).split() for x in ionpop.readlines()]
             # Remove empty strings from possible uneven formating
             ionpopdata = list(filter(None, ionpopdata))
-        
+
         return True, ionpopdata
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Ion Population File is not Avaliable&#34;)</code></pre>
@@ -601,11 +618,11 @@ Returns:
 <pre><code class="python">def exportFit(time_of_click, report):
     &#34;&#34;&#34;
     Function export the fit parameters calculated
-        
+
         Args:
             time_of_click: timestamp of the fit
             report: the report to be saved
-            
+
         Returns:
             Nothing, the data is saved to file and printed on the console
     &#34;&#34;&#34;
@@ -634,12 +651,12 @@ Returns:
 <pre><code class="python">def file_namer(simulation_or_fit, fit_time, extension):
     &#34;&#34;&#34;
     Function to generate file names
-        
+
         Args:
             simulation_or_fit: prefix for the type of file we want a name for
             fit_time: timestamp to identify the simulation/calculation that this file should correspond
             extension: file extention to be saved as
-            
+
         Returns:
             file_name: final file name to be saved
     &#34;&#34;&#34;
@@ -653,7 +670,7 @@ Returns:
     &#34;&#34;&#34;
     Final file name
     &#34;&#34;&#34;
-    
+
     return file_name</code></pre>
 </details>
 </dd>
@@ -675,10 +692,10 @@ Returns:
 <pre><code class="python">def load(loadvar):
     &#34;&#34;&#34;
     Function to request the file with the experimental spectrum
-        
+
         Args:
             loadvar: variable where we save the chosen file path
-            
+
         Returns:
             Nothing, the file path is save in the variable
     &#34;&#34;&#34;
@@ -706,10 +723,10 @@ Returns:
 <pre><code class="python">def loadEfficiency(file):
     &#34;&#34;&#34;
     Function to read the detector efficiency as csv
-        
+
         Args:
             file: file path of the efficiency data
-            
+
         Returns:
             List with the data still in string format
     &#34;&#34;&#34;
@@ -734,10 +751,10 @@ Returns:
 <pre><code class="python">def loadExp(file):
     &#34;&#34;&#34;
     Function to read the experimental spectrum as csv
-        
+
         Args:
             file: file path of the experimental spectrum
-            
+
         Returns:
             List with the data still in string format
     &#34;&#34;&#34;
@@ -762,10 +779,10 @@ Returns:
 <pre><code class="python">def load_effic_file(effic_var):
     &#34;&#34;&#34;
     Function to request the file with the detector efficiency
-        
+
         Args:
             effic_var: variable where we save the chosen file path
-            
+
         Returns:
             Nothing, the file path is save in the variable
     &#34;&#34;&#34;
@@ -798,12 +815,12 @@ Returns:
 <pre><code class="python">def readChargeStates(files, dir_path, z):
     &#34;&#34;&#34;
     Function to read the rates files in the files list
-        
+
         Args:
             files: list of the file names to read
             dir_path: full path of the simulation
             z: z value of the element to simulate
-        
+
         Returns:
             linerates_PCS: lists of the rates read for each positive charge state
             linerates_NCS: lists of the rates read for each negative charge state
@@ -829,7 +846,7 @@ Returns:
                     linerates_PCS[-1] = list(filter(None, linerates_PCS[-1]))
                     # Delete the header rows from the last list
                     del linerates_PCS[-1][0:2]
-                    
+
                     # Append the charge state value to identify the rates we just appended
                     PCS.append(&#39;+&#39; + file.split(&#39;+&#39;)[1].split(&#39;.&#39;)[0])
                 else:
@@ -839,7 +856,7 @@ Returns:
                     linerates_NCS[-1] = list(filter(None, linerates_NCS[-1]))
                     # Delete the header rows from the last list
                     del linerates_NCS[-1][0:2]
-                    
+
                     # Append the charge state value to identify the rates we just appended
                     NCS.append(&#39;-&#39; + file.split(&#39;-&#39;)[1].split(&#39;.&#39;)[0])
         except FileNotFoundError:
@@ -867,10 +884,10 @@ Returns:
 <pre><code class="python">def readIonPop(ionpop_file):
     &#34;&#34;&#34;
     Function to read the ion population file
-        
+
         Args:
             ionpop_file: full path of the ion population file
-            
+
         Returns:
             True: if the ion population file could be open
             ionpopdata: list with the ion population data
@@ -881,7 +898,7 @@ Returns:
             ionpopdata = [x.strip(&#39;\n&#39;).split() for x in ionpop.readlines()]
             # Remove empty strings from possible uneven formating
             ionpopdata = list(filter(None, ionpopdata))
-        
+
         return True, ionpopdata
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Ion Population File is not Avaliable&#34;)</code></pre>
@@ -905,10 +922,10 @@ Returns:
 <pre><code class="python">def readRates(rates_file):
     &#34;&#34;&#34;
     Function to read the rates file
-        
+
         Args:
             rates_file: file path of the rates file
-            
+
         Returns:
             linerates: list with the data still in string format
     &#34;&#34;&#34;
@@ -920,7 +937,7 @@ Returns:
             linerates = list(filter(None, linerates))
             # Delete the header rows
             del linerates[0:2]
-            
+
             return linerates
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Rates File is not Avaliable: &#34; + rates_file)</code></pre>
@@ -945,10 +962,10 @@ Returns:
 <pre><code class="python">def readShakeWeights(shakeweights_file):
     &#34;&#34;&#34;
     Function to read the shake weights file
-        
+
         Args:
             shakeweights_file: file path of the shake weights file
-            
+
         Returns:
             shakeweights: list with the shake weights in float
             label1: list with the shake labels
@@ -959,12 +976,12 @@ Returns:
             shakeweights_m = [x.strip(&#39;\n&#39;).split(&#39;,&#39;) for x in shakeweights_f.readlines()]
             shakeweights = []
             label1 = []
-            
+
             # Loop the read values and store them in two lists
             for i in range(len(shakeweights_m)):
                 shakeweights.append(float(shakeweights_m[i][1]))
                 label1.append(shakeweights_m[i][0])
-            
+
             return shakeweights, label1
     except FileNotFoundError:
         messagebox.showwarning(&#34;Error&#34;, &#34;Shake Weigths File is not Avaliable&#34;)</code></pre>
@@ -990,12 +1007,12 @@ Returns:
 <pre><code class="python">def searchChargeStates(dir_path, z, identifyer):
     &#34;&#34;&#34;
     Function to search the Charge_States folder for all &#34;identifyer&#34; rate files
-        
+
         Args:
             dir_path: full path of the simulation
             z: z value of the element to simulate
             identifyer: identifyer of the rate files we want to search (intensity, satinty, augrate)
-            
+
         Returns:
             files: file names found in the Charge_States folder with the identifyer
     &#34;&#34;&#34;
@@ -1005,7 +1022,7 @@ Returns:
         # If the name format matches a radiative rates files then append it to the list
         if os.path.isfile(os.path.join(dir_path / str(z) / &#39;Charge_States&#39;, f)) and identifyer in f:
             files.append(f)
-    
+
     return files</code></pre>
 </details>
 </dd>
@@ -1037,7 +1054,7 @@ Returns:
 <pre><code class="python">def write_to_xls(type_t, xfinal, enoffset, y0, exp_x, exp_y, residues_graph, radiative_files, auger_files, label1, date_and_time):
     &#34;&#34;&#34;
     Function to save the current simulation data into an excel file
-        
+
         Args:
             type_t: type of transitions simulated (diagram, satellite, diagram + satellite, auger)
             xfinal: simulated x values
@@ -1050,19 +1067,19 @@ Returns:
             auger_files: auger rates file names found for each charge state
             label1: shake weights labels read from the shake weigths file
             date_and_time: timestamp of the simulation for the name of the file saved
-            
+
         Returns:
             Nothing, the file is saved and a message box is shown to the used
     &#34;&#34;&#34;
-    #Print the timestamp of the simulation
+    # Print the timestamp of the simulation
     print(date_and_time)
-    
-    #Generate filename to save the data
+
+    # Generate filename to save the data
     file_title = file_namer(&#34;Simulation&#34;, date_and_time, &#34;.csv&#34;)
     &#34;&#34;&#34;
     Name of the file that is going to be saved. Please use the :func:`file_namer` function to generate names
     &#34;&#34;&#34;
-    
+
     # Initialize the header row of the excel file
     first_line = [&#39;Energy (eV)&#39;]
     &#34;&#34;&#34;
@@ -1098,11 +1115,11 @@ Returns:
     # ---------------------------------------------------------------------------------------------------------------
     # Add the column for the total y
     first_line += [&#39;Total&#39;]
-    
+
     # Add an intensity offset column if the offset is not 0
     if y0 != 0:
         first_line += [&#39;Total Off&#39;]
-    
+
     # Add 2 columns for the experimental spectrum if it is loaded
     if exp_x != None and exp_y != None:
         first_line += [&#39;Exp Energy (eV)&#39;, &#39;Intensity&#39;]
@@ -1143,7 +1160,7 @@ Returns:
     else:
         for i, x in enumerate(xfinal):
             matrix[i][0] = x
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the transition data in the respective columns
     for i, y in enumerate(data.variables.yfinal):
@@ -1152,32 +1169,32 @@ Returns:
             # Write the values in the column
             for row in range(len(y)):
                 matrix[row][transition_columns] = y[row]
-            
+
             transition_columns += 1
-        
+
         # Same for the satellite transitions but we require and extra loop
         if any(data.variables.yfinals[i]) != 0:
             for j, ys in enumerate(data.variables.yfinals[i]):
                 if max(ys) != 0:
                     for row in range(len(y)):
                         matrix[row][transition_columns] = ys[row]
-                    
+
                     transition_columns += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the total y and y + offset values in the matrix if the offset is not 0, otherwise write only the total y
     if y0 != 0:
         for j in range(len(data.variables.ytot)):
             matrix[j][transition_columns] = data.variables.ytot[j]
             matrix[j][transition_columns + 1] = data.variables.ytot[j] + y0
-    
+
         transition_columns += 1
     else:
         for j in range(len(data.variables.ytot)):
             matrix[j][transition_columns] = data.variables.ytot[j]
 
     transition_columns += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the experimental spectrum values
     if exp_x == None and exp_y == None:
@@ -1188,7 +1205,7 @@ Returns:
             matrix[i][transition_columns + 1] = exp_y[i]
 
         transition_columns += 2
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Retrieve the residue data from the graph object
     if residues_graph == None:
@@ -1214,7 +1231,7 @@ Returns:
         matrix[0][transition_columns + 4] = data.variables.chi_sqrd
 
         transition_columns += 5
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the mix values in the matrix
     if type_t != &#39;Auger&#39;:
@@ -1252,16 +1269,16 @@ Returns:
                 else:
                     matrix[i + 1][transition_columns + 2] = data.variables.NCS_augMixValues[idx_n].get()
                     idx_n += 1
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Add the header row
     matrix = [first_line] + matrix
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Print the matrix values in the console to debug
     # for row in matrix:
     #     print(&#39; &#39;.join(map(str, row)))
-    
+
     # ---------------------------------------------------------------------------------------------------------------
     # Write the matrix in the file. First open as write to create the file, then we append the remaining lines
     for i, item in enumerate(matrix):
@@ -1273,7 +1290,7 @@ Returns:
             with open(file_title, &#39;a&#39;, newline=&#39;&#39;) as csvfile2:
                 w1 = csv.writer(csvfile2, delimiter=&#39;,&#39;, quotechar=&#39;|&#39;, quoting=csv.QUOTE_MINIMAL)
                 w1.writerow(matrix[i])
-    
+
     # Prompt that the data was saved
     messagebox.showinfo(&#34;File Saved&#34;, &#34;Data file has been saved&#34;)</code></pre>
 </details>
