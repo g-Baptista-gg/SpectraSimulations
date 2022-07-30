@@ -1684,7 +1684,7 @@ def plot_stick(sim, f, graph_area):
                             # Loop the shake labels read from the shake weights file
                             for ind, key in enumerate(generalVars.label1):
                                 # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
+                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val)
                                 
                                 # Check if there is at least one satellite transition
                                 if len(sat_sim_val_ind) > 1:
@@ -1710,7 +1710,7 @@ def plot_stick(sim, f, graph_area):
                             # Loop the shake labels read from the shake weights file
                             for ind, key in enumerate(generalVars.label1):
                                 # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
+                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val)
                                 
                                 # Check if there is at least one satellite transition
                                 if len(sat_sim_val_ind) > 1:
