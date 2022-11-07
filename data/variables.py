@@ -107,6 +107,16 @@ label1 = []
 """
 Variable to hold the shake labels read from file
 """
+#Raw data read from the orbital binding energies file to be simulated
+bindings = []
+"""
+Variable to hold the orbital binding energies read from file
+"""
+#Variable to store the labels read from the orbital binding energies file
+label2 = []
+"""
+Variable to hold the orbital labels read from file
+"""
 
 
 #Raw data read from the radiative transitions files to be simulated, for each charge state split by positive and negative CS

@@ -34,6 +34,16 @@ element_name = None
 Element name to use when sending the data to plot
 """
 
+col2 = [['b'], ['g'], ['r'], ['c'], ['m'], ['y'], ['k']]
+"""
+Set of colors to choose from when plotting
+"""
+
+normalization_var = 1
+"""
+Normalization multiplyer
+"""
+
 # --------------------------------------------------------- #
 #                                                           #
 #            MATH FUNCTIONS FOR LINE PROFILES               #
@@ -536,14 +546,29 @@ def calculateResidues(exp_x, exp_y, exp_sigma, xfinal, enoffset, normalization_v
 #                                                           #
 # --------------------------------------------------------- #
 
+def get_binding(low_level):
+    """
+    Function to find the orbital binding energy from the level label
+        
+        Args:
+            low_level: low level label that needs to be ionized for the transition to be observed
+        
+        Returns:
+            binding: the binding energy of the corresponding orbital
+    """
+    for i, lab in enumerate(generalVars.label2):
+        if lab == low_level:
+            return generalVars.bindings[i]
+
 # Update the radiative and satellite rates for the selected transition
-def updateRadTransitionVals(transition, num):
+def updateRadTransitionVals(transition, num, beam):
     """
     Function to update the radiative and satellite rates for the selected transition
         
         Args:
             transition: which transition to fetch the rates of
             num: total number of transitions processed
+            beam: beam energy user value from the interface
         
         Returns:
             num_of_transitions: total number of transitions processed
@@ -558,14 +583,24 @@ def updateRadTransitionVals(transition, num):
     low_level = the_dictionary[transition]["low_level"]
     high_level = the_dictionary[transition]["high_level"]
     
-    # Filter the radiative and satellite rates data for the selected transition
-    diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
-    sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0]
+    # If a beam energy grater than 0 eV has been inputed in the interface then we want to filter the transitions accordingly
+    if beam > 0:
+        if beam + get_binding(low_level) >= 0:
+            # Filter the radiative and satellite rates data for the selected transition
+            diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
+            sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0]
+        else:
+            diag_stick_val = []
+            sat_stick_val = []
+    else:
+        # Filter the radiative and satellite rates data for the selected transition
+        diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
+        sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0]
     
     return num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val
 
 # Update the satellite rates for the selected transition
-def updateSatTransitionVals(low_level, high_level, key, sat_stick_val):
+def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam):
     """
     Function to update the satellite rates for the selected transition and shake level
         
@@ -574,27 +609,43 @@ def updateSatTransitionVals(low_level, high_level, key, sat_stick_val):
             high_level: high level of the selected transition
             key: shake level of the satellite transition
             sat_stick_val: list with all the possible satellite transitions for the current diagram transition
+            beam: beam energy user value from the interface
         
         Returns:
             sat_stick_val_ind: list with the satellite rates for the selected diagram transition and shake level
     """
-    # Filter the satellite rates data for the combinations of selected levels
-    sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
-    sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and key != high_level]
-    sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
-    sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and key != high_level]
+    if beam > 0:
+        if beam + get_binding(low_level) + get_binding(key) >= 0:
+            # Filter the satellite rates data for the combinations of selected levels
+            sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
+            sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and key != high_level]
+            sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
+            sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and key != high_level]
+        else:
+            sat_stick_val_ind1 = []
+            sat_stick_val_ind2 = []
+            sat_stick_val_ind3 = []
+            sat_stick_val_ind4 = []
+    else:
+        # Filter the satellite rates data for the combinations of selected levels
+        sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
+        sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and key != high_level]
+        sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
+        sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and key != high_level]
+    
     sat_stick_val_ind = sat_stick_val_ind1 + sat_stick_val_ind2 + sat_stick_val_ind3 + sat_stick_val_ind4
     
     return sat_stick_val_ind
 
 # Update the auger rates for the selected transition
-def updateAugTransitionVals(transition, num):
+def updateAugTransitionVals(transition, num, beam):
     """
     Function to update the auger rates for the selected transition
         
         Args:
             transition: which transition to fetch the rates of
             num: total number of transitions processed
+            beam: beam energy user value from the interface
         
         Returns:
             num_of_transitions: total number of transitions processed
@@ -607,13 +658,20 @@ def updateAugTransitionVals(transition, num):
     high_level = the_aug_dictionary[transition]["high_level"]
     auger_level = the_aug_dictionary[transition]["auger_level"]
 
-    # Filter the auger rates data for the selected transition
-    aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
+    if beam > 0:
+        if beam + get_binding(low_level) >= 0:
+            # Filter the auger rates data for the selected transition
+            aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
+        else:
+            aug_stick_val = []
+    else:
+        # Filter the auger rates data for the selected transition
+        aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
     
     return num_of_transitions, aug_stick_val
 
 # Update the radiative and satellite rates for the selected transition and charge state
-def updateRadCSTrantitionsVals(transition, num, ncs, cs):
+def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam):
     """
     Function to update the radiative and satellite rates for the selected transition and charge state
         
@@ -622,6 +680,7 @@ def updateRadCSTrantitionsVals(transition, num, ncs, cs):
             num: total number of transitions processed
             ncs: boolean selecting if this is a negative charge state or not
             cs: value of the charge state
+            beam: beam energy user value from the interface
         
         Returns:
             num_of_transitions: total number of transitions processed
@@ -636,21 +695,37 @@ def updateRadCSTrantitionsVals(transition, num, ncs, cs):
     low_level = the_dictionary[transition]["low_level"]
     high_level = the_dictionary[transition]["high_level"]
     
-    # Filter the radiative and satellite rates data for the selected transition and charge state
-    if not ncs:
-        diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]  # Cada vez que o for corre, lê o ficheiro de uma transição
-    else:
-        diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
+    if beam > 0:
+        if beam + get_binding(low_level) >= 0:
+            # Filter the radiative and satellite rates data for the selected transition and charge state
+            if not ncs:
+                diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]  # Cada vez que o for corre, lê o ficheiro de uma transição
+            else:
+                diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
 
-    if not ncs:
-        sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs]
+            if not ncs:
+                sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs]
+            else:
+                sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs]
+        else:
+            diag_stick_val = []
+            sat_stick_val = []
     else:
-        sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs]
+        # Filter the radiative and satellite rates data for the selected transition and charge state
+        if not ncs:
+            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]  # Cada vez que o for corre, lê o ficheiro de uma transição
+        else:
+            diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
+
+        if not ncs:
+            sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs]
+        else:
+            sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs]
     
     return num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val
 
 # Update the auger rates for the selected transition and charge state
-def updateAugCSTransitionsVals(transition, num, ncs, cs):
+def updateAugCSTransitionsVals(transition, num, ncs, cs, beam):
     """
     Function to update the auger rates for the selected transition and charge state
         
@@ -659,6 +734,7 @@ def updateAugCSTransitionsVals(transition, num, ncs, cs):
             num: total number of transitions processed
             ncs: boolean selecting if this is a negative charge state or not
             cs: value of the charge state
+            beam: beam energy user value from the interface
         
         Returns:
             num_of_transitions: total number of transitions processed
@@ -670,12 +746,22 @@ def updateAugCSTransitionsVals(transition, num, ncs, cs):
     low_level = the_aug_dictionary[transition]["low_level"]
     high_level = the_aug_dictionary[transition]["high_level"]
     auger_level = the_aug_dictionary[transition]["auger_level"]
-
-    # Filter the auger rates data for the selected transition and charge state
-    if not ncs:
-        aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+    
+    if beam > 0:
+        if beam + get_binding(low_level) >= 0:
+            # Filter the auger rates data for the selected transition and charge state
+            if not ncs:
+                aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+            else:
+                aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+        else:
+            aug_stick_val = []
     else:
-        aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+        # Filter the auger rates data for the selected transition and charge state
+        if not ncs:
+            aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+        else:
+            aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
     
     return num_of_transitions, aug_stick_val
 
@@ -961,6 +1047,1120 @@ def stem_ploter(transition_values, transition, spec_type, ind, key):
     # Place the legend with the final number of columns
     a.legend(ncol=legend_columns)
 
+
+def stick_diagram(diag_stick_val, transition, bad_selection, cs = ''):
+    """
+    Function to check and send the data to the stick plotter function for diagram transitions.
+    
+        Args:
+            diag_stick_val: array with the rates data from the selected diagram transition
+            transition: selected transition key
+            bad_selection: total number of transitions that had no data
+            cs: charge state value for when simulating various charge states
+        
+        Returns:
+            bad: updated value of the total number of transitions that had no data
+    """
+    # Check if there is no data for the selected transition
+    if not diag_stick_val:
+        # Make a 0 vector to still have data to plot
+        diag_stick_val = [['0' for i in range(16)]]
+        # Show a warning that this transition has no data and add it to the bad selection count
+        messagebox.showwarning("Wrong Transition", transition + " is not Available")
+        bad = bad_selection + 1
+    
+    # Plot the transition
+    if cs == '':
+        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
+    else:
+        stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
+    
+    return bad
+
+
+def stick_satellite(sim, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs = ''):
+    """
+    Function to check and send the data to the stick plotter function for sattelite transitions.
+    
+        Args:
+            sim: tkinter simulation window to update the progress bar
+            sat_stick_val: array with the rates data from the selected sattelite transition
+            transition: selected transition key
+            low_level: low level of the selected transition
+            high_level: high level of the selected transition
+            bad_selection: total number of transitions that had no data
+            beam: beam energy user value from the interface
+            cs: charge state value for when simulating various charge states
+        
+        Returns:
+            bad: updated value of the total number of transitions that had no data
+    """
+    # Check if there is no data for the selected transition
+    if not sat_stick_val:
+        # Make a 0 vector to still have data to plot
+        sat_stick_val = [['0' for i in range(16)]]
+        # Show a warning that this transition has no data and add it to the bad selection count
+        messagebox.showwarning("Wrong Transition", transition + " is not Available")
+        bad = bad_selection + 1
+    
+    # Initialize a variable to control the progress bar
+    b1 = 0
+    
+    # Loop all shake levels read in the shake weights file
+    for ind, key in enumerate(generalVars.label1):
+        # Filter the specific combination of radiative transition and shake level (key) to simulate
+        sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam)
+        
+        # Check for at least one satellite transition
+        if len(sat_stick_val_ind) > 1:
+            if cs == '':
+                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
+            else:
+                stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
+        
+        # Update the progress bar
+        b1 += 100 / len(generalVars.label1)
+        guiVars.progress_var.set(b1)
+        sim.update_idletasks()
+    
+    return bad
+
+
+def stick_auger(aug_stick_val, transition, bad_selection, cs = ''):
+    """
+    Function to check and send the data to the stick plotter function for auger transitions.
+    
+        Args:
+            aug_stick_val: array with the rates data from the selected auger transition
+            transition: selected transition key
+            bad_selection: total number of transitions that had no data
+            cs: charge state value for when simulating various charge states
+        
+        Returns:
+            bad: updated value of the total number of transitions that had no data
+    """
+    # Check if there is no data for the selected transition
+    if not aug_stick_val:
+        # Make a 0 vector to still have data to plot
+        aug_stick_val = [['0' for i in range(16)]]
+        # Show a warning that this transition has no data and add it to the bad selection count
+        messagebox.showwarning("Wrong Transition", "Auger info. for " + transition + " is not Available")
+        bad = bad_selection + 1
+    
+    # Plot the transition
+    if cs == '':
+        stem_ploter(aug_stick_val, transition, 'Auger', 0, 0)
+    else:
+        stem_ploter(aug_stick_val, cs + '' + transition, 'Auger_CS', 0, 0)
+    
+    return bad
+
+
+def make_stick(sim, graph_area):
+    """
+    Function to calculate the values that will be sent to the stick plotter function.
+        
+        Args:
+            sim: tkinter simulation window to update the progress bar
+            graph_area: matplotlib graph to plot the simulated transitions
+        
+        Returns:
+            Nothing, the sticks that need to be plotted are calculated and the data is sent to the plotting functions.
+    """
+    # Variable for the total number of plotted transitions
+    num_of_transitions = 0
+    # Variable for the number of transitions that were selected but no rates were found
+    bad_selection = 0
+    
+    sat = guiVars.satelite_var.get()
+    beam = guiVars.excitation_energy.get()
+    
+    # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
+    if sat != 'Auger':
+        # Loop possible radiative transitions
+        for transition in the_dictionary:
+            # If the transition was selected
+            if the_dictionary[transition]["selected_state"]:
+                # Filter the radiative and satellite rates corresponding to this transition
+                num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadTransitionVals(transition, num_of_transitions, beam)
+                
+                # -------------------------------------------------------------------------------------------
+                if 'Diagram' in sat:
+                    bad_selection = stick_diagram(diag_stick_val, transition, bad_selection)
+                if 'Satellites' in sat:
+                    bad_selection = stick_satellite(sim, sat_stick_val, low_level, high_level, transition, bad_selection, beam)
+            
+    else:
+        # Loop possible auger transitions
+        for transition in the_aug_dictionary:
+            # If the transition is selected
+            if the_aug_dictionary[transition]["selected_state"]:
+                # Filter the auger rates for this transition
+                num_of_transitions, aug_stick_val = updateAugTransitionVals(transition, num_of_transitions, beam)
+                
+                bad_selection = stick_auger(aug_stick_val, transition, bad_selection)
+    
+    # Set the labels for the axis
+    graph_area.set_xlabel('Energy (eV)')
+    graph_area.set_ylabel('Intensity (arb. units)')
+
+    if num_of_transitions == 0:
+        messagebox.showerror("No Transition", "No transition was chosen")
+    elif bad_selection != 0:
+        messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+
+
+def make_Mstick(sim, graph_area):
+    """
+    Function to calculate the values that will be sent to the stick plotter function when simulating a mixture of charge states.
+        
+        Args:
+            sim: tkinter simulation window to update the progress bar
+            graph_area: matplotlib graph to plot the simulated transitions
+        
+        Returns:
+            Nothing, the sticks that need to be plotted are calculated and the data is sent to the plotting functions.
+    """
+    # Variable for the total number of plotted transitions
+    num_of_transitions = 0
+    # Variable for the number of transitions that were selected but no rates were found
+    bad_selection = 0
+    
+    sat = guiVars.satelite_var.get()
+    beam = guiVars.excitation_energy.get()
+    
+    # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
+    if sat != 'Auger':
+        # Initialize the charge states we have to loop through
+        charge_states = generalVars.rad_PCS + generalVars.rad_NCS
+
+        # Loop the charge states
+        for cs_index, cs in enumerate(charge_states):
+            # Initialize the mixture value chosen for this charge state
+            mix_val = '0.0'
+            # Flag to check if this is a negative or positive charge state
+            ncs = False
+
+            # Check if this charge state is positive or negative and get the mix value
+            if cs_index < len(generalVars.rad_PCS):
+                mix_val = generalVars.PCS_radMixValues[cs_index].get()
+            else:
+                mix_val = generalVars.NCS_radMixValues[cs_index - len(generalVars.rad_PCS)].get()
+                ncs = True
+            
+            # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
+            if mix_val != '0.0':
+                # Loop the possible radiative transitions
+                for transition in the_dictionary:
+                    # If the transition is selected
+                    if the_dictionary[transition]["selected_state"]:
+                        # Filter the radiative and satellite rates for this transition and charge state
+                        num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadCSTrantitionsVals(transition, num_of_transitions, ncs, cs, beam)
+                        
+                        if 'Diagram' in sat:
+                            bad_selection = stick_diagram(diag_stick_val, transition, bad_selection, cs)
+                        if 'Satellites' in sat:
+                            bad_selection = stick_satellite(sim, sat_stick_val, low_level, high_level, transition, bad_selection, beam, cs)
+                    
+    else:
+        # Initialize the charge states we have to loop through
+        charge_states = generalVars.aug_PCS + generalVars.aug_NCS
+
+        # Loop the charge states
+        for cs_index, cs in enumerate(charge_states):
+            # Initialize the mixture value chosen for this charge state
+            mix_val = '0.0'
+            # Flag to check if this is a negative or positive charge state
+            ncs = False
+
+            # Check if this charge state is positive or negative and get the mix value
+            if cs_index < len(generalVars.aug_PCS):
+                mix_val = generalVars.PCS_augMixValues[cs_index].get()
+            else:
+                mix_val = generalVars.NCS_augMixValues[cs_index - len(generalVars.aug_PCS)].get()
+                ncs = True
+            
+            # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
+            if mix_val != '0.0':
+                # Loop the possible auger transitions
+                for transition in the_aug_dictionary:
+                    # If the transition is selected
+                    if the_aug_dictionary[transition]["selected_state"]:
+                        # Filter the auger rates for this transition and charge state
+                        num_of_transitions, aug_stick_val = updateAugCSTransitionsVals(transition, num_of_transitions, ncs, cs, beam)
+                        
+                        bad_selection = stick_auger(aug_stick_val, transition, bad_selection, cs)
+
+    # Set the labels for the axis
+    graph_area.set_xlabel('Energy (eV)')
+    graph_area.set_ylabel('Intensity (arb. units)')
+
+    if num_of_transitions == 0:
+        messagebox.showerror("No Transition", "No transition was chosen")
+    elif bad_selection != 0:
+        messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+
+
+def simu_diagram(diag_sim_val):
+    """
+    Function to organize the data to be sent to the plotter function for diagram transitions.
+    
+        Args:
+            diag_sim_val: array with the rates data from the selected diagram transition
+        
+        Returns:
+            x1: energy values for every line possible within the selected transition
+            y1: intensity values for every line possible within the selected transition
+            w1: width values for every line possible within the selected transition
+    """
+    # Extract the energies, intensities and widths of the transition (different j and eigv)
+    x1 = [float(row[8]) for row in diag_sim_val]
+    y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
+    w1 = [float(row[15]) for row in diag_sim_val]
+    
+    return x1, y1, w1
+
+
+def simu_sattelite(sat_sim_val, low_level, high_level, beam):
+    """
+    Function to check and send the data to the stick plotter function for sattelite transitions.
+    
+        Args:
+            sat_sim_val: array with the rates data from the selected sattelite transition
+            low_level: low level of the selected transition
+            high_level: high level of the selected transition
+            beam: beam energy user value from the interface
+        
+        Returns:
+            xs_inds: nested list with the energy values of each satellite transition possible for the selected diagram transition
+            ys_inds: nested list with the intensity values of each satellite transition possible for the selected diagram transition
+            ws_inds: nested list with the width values of each satellite transition possible for the selected diagram transition
+    """
+    # Temporary arrays to store the satellite data for this transition
+    xs_inds = []
+    ys_inds = []
+    ws_inds = []
+    
+    # Loop the shake labels read from the shake weights file
+    for ind, key in enumerate(generalVars.label1):
+        # Filter the specific combination of radiative transition and shake level (key) to simulate
+        sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val, beam)
+        
+        # Check if there is at least one satellite transition
+        if len(sat_sim_val_ind) > 1:
+            # Extract the energies, intensities and widths of the transition (different j and eigv)
+            x1s = [float(row[8]) for row in sat_sim_val_ind]
+            y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
+            w1s = [float(row[15]) for row in sat_sim_val_ind]
+            # Store the values in a list containing all the transitions to simulate
+            xs_inds.append(x1s)
+            ys_inds.append(y1s)
+            ws_inds.append(w1s)
+    
+    return xs_inds, ys_inds, ws_inds
+
+
+def simu_auger(aug_sim_val):
+    """
+    Function to organize the data to be sent to the plotter function for diagram transitions.
+    
+        Args:
+            aug_sim_val: array with the rates data from the selected auger transition
+        
+        Returns:
+            x1: energy values for every line possible within the selected transition
+            y1: intensity values for every line possible within the selected transition
+            w1: width values for every line possible within the selected transition
+    """
+    # Extract the energies, intensities and widths of the transition (different j and eigv)
+    x1 = [float(row[8]) for row in aug_sim_val]
+    y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) for row in aug_sim_val]
+    w1 = [float(row[10]) for row in aug_sim_val]
+    
+    return x1, y1, w1
+
+
+def simu_check_bads(x, xs, rad = True):
+    """
+    Function to check if any of the selected transitions do not have data.
+    
+        Args:
+            x: energy values for each of the possible transitions
+            xs: energy values for each of the possible radiative sattelite transitions for each radiative transition
+            rad: flag to check for radiative (True) or auger (False) missing data
+        
+        Returns:
+            bads: indexes of the missing transitions. The length of this list is also returned
+    """
+    bads = []
+    
+    if rad:
+        for index, transition in enumerate(the_dictionary):
+            if the_dictionary[transition]["selected_state"]:
+                if not x[index] and not any(xs[index]):
+                    messagebox.showwarning("Wrong Transition", transition + " is not Available")
+                    bads.append(index)
+    else:
+        for index, transition in enumerate(the_aug_dictionary):
+            if the_aug_dictionary[transition]["selected_state"]:
+                if not x[index]:
+                    messagebox.showwarning("Wrong Auger Transition", transition + " is not Available")
+                    bads.append(index)
+    
+    return len(bads), bads
+
+
+def calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points, bad_selection):
+    """
+    Function to calculate the xfinal set of x values to use in the simulation.
+    We take into account if an experimental spectrum is loaded, the energy of the transitions and resolution
+    
+        Args:
+            sat: simulation type selected in the interface (diagram, satellite, auger)
+            x: energy values for each of the possible transitions
+            w: width values for each of the possible transitions
+            xs: energy values for each of the possible radiative sattelite transitions for each radiative transition
+            ws: width values for each of the possible radiative sattelite transitions for each radiative transition
+            x_mx: maximum user x value from the interface
+            x_mn: minimum user x value from the interface
+            res: energy resolution user value from the interface
+            enoffset: energy offset user value from the interface
+            num_of_points: user value for the number of points to simulate from the interface
+            bad_selection: total number of transitions that had no data
+            
+        Returns:
+            Nothing. The xfinal is stored in the variables module to be used globaly while plotting.
+    """
+    try:
+        if sat == 'Diagram':
+            # Get the bounds of the energies and widths to plot
+            deltaE, max_value, min_value = getBounds(x, w)
+
+        elif sat == 'Satellites' or sat == 'Diagram + Satellites':
+            # Get the bounds of the energies and widths to plot
+            deltaE, max_value, min_value = getSatBounds(xs, ws)
+        
+        elif sat == 'Auger':
+            # Get the bounds of the energies and widths to plot
+            deltaE, max_value, min_value = getBounds(x, w)
+        
+        # Update the bounds considering the resolution and energy offset chosen
+        array_input_max, array_input_min = updateMaxMinVals(x_mx, x_mn, deltaE, max_value, min_value, res, enoffset)
+        
+        # Calculate the grid of x values to use in the simulation
+        generalVars.xfinal = np.linspace(array_input_min, array_input_max, num=num_of_points)
+    except ValueError:
+        generalVars.xfinal = np.zeros(num_of_points)
+        if not bad_selection:
+            messagebox.showerror("No Transition", "No transition was chosen")
+        else:
+            messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+
+
+def initialize_expElements(f, load, enoffset, num_of_points, x_mx, x_mn, normalize):
+    """
+    Function to initialize the elements necessary when loading an experimental spectrum.
+        
+        Args:
+            f: matplotlib figure object where to plot the data
+            load: path to the experimental spectrum loaded in the interface ('No' if no spectrum has been loaded)
+            enoffset: energy offset user value from the interface
+            num_of_points: user value for the number of points to simulate from the interface
+            x_mx: maximum user x value from the interface
+            x_mn: minimum user x value from the interface
+        
+        Returns:
+            Nothing. The elements are initialized and the interface is updated.
+    """
+    global residues_graph
+    
+    # Initialize the residue plot and load the experimental spectrum
+    graph_area, residues_graph, exp_spectrum = guiVars.setupExpPlot(f, load, element_name)
+    # Extract the x, y, and sigma values from the loaded experimental spectrum
+    xe, ye, sigma_exp = extractExpVals(exp_spectrum)
+    # Bind the experimental spectrum to the calculated bounds
+    generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma = getBoundedExp(xe, ye, sigma_exp, enoffset, num_of_points, x_mx, x_mn)
+    # Calculate the final energy values
+    generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
+    # plot the experimental spectrum and residues graph
+    guiVars.plotExp(graph_area, residues_graph, generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, normalize)
+    
+    return graph_area, exp_spectrum
+
+
+def initialize_detectorEfficiency(effic_file_name):
+    """
+    Function to read and initialize the detector efficiency values.
+        
+        Args:
+            effic_file_name: name of the file with the detector efficiency
+        
+        Returns:
+            energy_values: list of energy values in the efficiency file
+            efficiency_values: list of efficiency values in the efficiency file
+    """
+    energy_values = []
+    efficiency_values = []
+    
+    try:
+        # Read and load the file
+        efficiency = loadEfficiency(effic_file_name)
+        # Convert to floats
+        for pair in efficiency:
+            energy_values.append(float(pair[0]))
+            efficiency_values.append(float(pair[1]))
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "Efficiency File is not Avaliable")
+    
+    return energy_values, efficiency_values
+
+
+def execute_autofit(sat, enoffset, y0, res, num_of_points, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, time_of_click):
+    """
+    Execute the autofit for the current simulation to the loaded experimental values.
+    Fitting is currently performed with the LMfit package.
+    
+        Args:
+            sat: simulation type selected in the interface (diagram, satellite, auger)
+            enoffset: energy offset user value from the interface
+            y0: intensity offset user value from the interface
+            res: energy resolution user value from the interface
+            num_of_points: user value for the number of points to simulate from the interface
+            peak: profile type selected in the interface
+            x: energy values for each of the possible transitions
+            y: intensity values for each of the possible transitions
+            w: width values for each of the possible transitions
+            xs: energy values for each of the possible radiative sattelite transitions for each radiative transition
+            ys: intensity values for each of the possible radiative sattelite transitions for each radiative transition
+            ws: width values for each of the possible radiative sattelite transitions for each radiative transition
+            energy_values: list of energy values in the efficiency file
+            efficiency_values: list of efficiency values in the efficiency file
+            time_of_click: timestamp to use when saving files for this simulation plot
+        
+        Returns:
+            number_of_fit_variables: number of fitted variables
+            enoffset: fitted energy offset
+            y0: fitted intensity offset
+            res: fitted energy resolution
+            ytot_max: fitted intensity maximum value
+            normalization_var: fitted normalization multiplier to normalize intensity when plotting
+    """
+    # Initialize the fit parameters
+    params = initializeFitParameters(generalVars.exp_x, generalVars.exp_y, enoffset, y0, res)
+    
+    # Minimize the function for the initialized parameters
+    number_of_fit_variables = len(params.valuesdict())
+    minner = Minimizer(func2min, params, fcn_args=(sim, generalVars.exp_x, generalVars.exp_y, num_of_points, sat, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, enoffset))
+    result = minner.minimize()
+    
+    # Get the fitted values
+    enoffset, y0, res, ytot_max = fetchFittedParams(result)
+
+    # Calculate the energy values for the fitted parameters
+    generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
+    # Calculate the normalizer multiplier for the fitted parameters
+    normalization_var = normalizer(y0, max(generalVars.exp_y), ytot_max)
+    
+    # Calculate the intensities for the fitted parameters
+    generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
+    
+    # Ask to save the fit
+    if messagebox.askyesno("Fit Saving", "Do you want to save this fit?"):
+        # Get the report on the fit
+        report = fit_report(result)
+        # Export the fit to file
+        exportFit(time_of_click, report)
+    
+    return number_of_fit_variables, enoffset, y0, res, ytot_max, normalization_var
+
+
+def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
+    """
+    Function to plot the simulation values according to the selected transition types.
+    
+        Args:
+            sat: simulation type selected in the interface (diagram, satellite, auger)
+            graph_area: matplotlib graph to plot the simulated transitions
+            enoffset: energy offset user value from the interface
+            normalization_var: normalization multiplier to normalize intensity when plotting
+            y0: intensity offset user value from the interface
+            total: flag from the interface to plot the total intensity
+        
+        Returns:
+            Nothing. The interface is updated with the new simulation data.
+    """
+    
+    if 'Diagram' in sat:
+        for index, key in enumerate(the_dictionary):
+            if the_dictionary[key]["selected_state"]:
+                # Plot the selected transition
+                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                graph_area.legend()
+    if 'Satellites' in sat:
+        for index, key in enumerate(the_dictionary):
+            if the_dictionary[key]["selected_state"]:
+                for l, m in enumerate(generalVars.yfinals[index]):
+                    # Dont plot the satellites that have a max y value of 0
+                    if max(m) != 0:
+                        # Plot the selected transition
+                        graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                        graph_area.legend()
+    if sat == 'Auger':
+        for index, key in enumerate(the_aug_dictionary):
+            if the_aug_dictionary[key]["selected_state"]:
+                # Plot the selected transition
+                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                graph_area.legend()
+    if total == 'Total':
+        # Plot the selected transition
+        graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')
+        graph_area.legend()
+
+
+def format_legend(graph_area):
+    """
+    Function to format the legend.
+    
+        Args:
+            graph_area: matplotlib graph to plot the simulated transitions
+        
+        Returns:
+            Nothing. The legend is formated and updated on the interface.
+    """
+    
+    # Number of total labels to place in the legend
+    number_of_labels = len(graph_area.legend().get_texts())
+    # Initialize the numeber of legend columns
+    legend_columns = 1
+    # Initialize the number of legends in each columns
+    labels_per_columns = number_of_labels / legend_columns
+    # While we have more than 10 labels per column
+    while labels_per_columns > 10:
+        # Add one more column
+        legend_columns += 1
+        # Recalculate the number of labels per column
+        labels_per_columns = number_of_labels / legend_columns
+    
+    # Place the legend with the final number of columns
+    graph_area.legend(ncol=legend_columns)
+
+
+def initialize_XYW(type_simu, ploted_cs = []):
+    """
+    Function to initialize the lists that hold the data for all transitions to be simulated.
+    
+        Args:
+            type_simu: type of lists to initialize depending of the simulation
+            ploted_cs: list of the charge states to be ploted in this simulation
+        
+        Returns:
+            x: energy values for each of the possible radiative transitions
+            y: intensity values for each of the possible radiative transitions
+            w: natural width values for each of the possible radiative transitions
+            xs: energy values for each of the possible radiative satellite transitions
+            ys: intensity values for each of the possible radiative satellite transitions
+            ws: natural width values for each of the possible radiative satellite transitions
+    """
+    
+    if 'Radiative' in type_simu:
+        trans_dict = the_dictionary
+    else:
+        trans_dict = the_aug_dictionary
+    
+    if 'CS' in type_simu:
+        cs_mult = len(ploted_cs)
+    else:
+        cs_mult = 1
+    
+    x = [[] for i in range(len(trans_dict) * cs_mult)]
+    y = [[] for i in range(len(trans_dict) * cs_mult)]
+    w = [[] for i in range(len(trans_dict) * cs_mult)]
+    xs = [[[] for i in generalVars.label1] for j in x]
+    ys = [[[] for i in generalVars.label1] for j in y]
+    ws = [[[] for i in generalVars.label1] for j in w]
+    
+    return x, y, w, xs, ys, ws
+    
+
+def make_simulation(sim, f, graph_area, time_of_click):
+    """
+    Function to calculate the values that will be sent to the plot function.
+        
+        Args:
+            sim: tkinter simulation window to update the progress bar
+            f: matplotlib figure object where to plot the data
+            graph_area: matplotlib graph to plot the simulated transitions
+            time_of_click: timestamp to use when saving files for this simulation plot
+        
+        Returns:
+            Nothing, the simulation is performed, the transitions are plotted and the interface is updated
+    """
+    
+    sat = guiVars.satelite_var.get()
+    beam = guiVars.excitation_energy.get()
+    
+    # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
+    if sat != 'Auger':
+        # Initialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
+        x, y, w, xs, ys, ws = initialize_XYW('Radiative')
+        
+        # Read the selected transitions
+        # In this case we first store all the values for the transitions and then we calculate the y values to be plotted according to a profile
+        for index, transition in enumerate(the_dictionary):
+            if the_dictionary[transition]["selected_state"]:
+                # Same filter as the sticks but we dont keep track of the number of selected transitions
+                _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadTransitionVals(transition, 0, beam)
+                
+                if 'Diagram' in sat:
+                    # Store the values in a list containing all the transitions to simulate
+                    x[index], y[index], w[index] = simu_diagram(diag_sim_val)
+                if 'Satellites' in sat:
+                    # Store the values in a list containing all the transitions to simulate
+                    xs[index], ys[index], ws[index] = simu_sattelite(sat_sim_val, low_level, high_level, beam)
+        
+        # -------------------------------------------------------------------------------------------
+        # Check if there are any transitions with missing rates
+        bad_selection, bads = simu_check_bads(x, xs, True)
+        for index in bads:
+            x[index] = []
+        
+    else:
+        # Initialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
+        x, y, w, xs, ys, ws = initialize_XYW('Auger')
+        
+        # Loop possible auger transitions
+        for index, transition in enumerate(the_aug_dictionary):
+            if the_aug_dictionary[transition]["selected_state"]:
+                # Same as the stick but we dont care about the number of transitions
+                _, aug_stick_val = updateAugTransitionVals(transition, 0, beam)
+                
+                # Store the values in a list containing all the transitions to simulate
+                x[index], y[index], w[index] = simu_auger(aug_sim_val)
+
+        # -------------------------------------------------------------------------------------------
+        # Check if there are any transitions with missing rates
+        bad_selection, bads = simu_check_bads(x, xs, False)
+        for index in bads:
+            x[index] = []
+
+    # -------------------------------------------------------------------------------------------
+    # Calculate the xfinal set of x values to use in the simulation
+    num_of_points = guiVars.number_points.get()
+    x_mx = guiVars.x_max.get()
+    x_mn = guiVars.x_min.get()
+    enoffset = guiVars.energy_offset.get()
+    res = guiVars.exp_resolution.get()
+    
+    calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points, bad_selection)
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # Load and plot the experimental spectrum
+    generalVars.exp_x = []
+    generalVars.exp_y = []
+    generalVars.exp_sigma = []
+    min_exp_lim = 0
+    max_exp_lim = 0
+    
+    # Initialize needed elements if we have loaded an experimental spectrum
+    load = guiVars.loadvar.get()
+    
+    if load != 'No':
+        graph_area, exp_spectrum = initialize_expElements(f, load, enoffset, num_of_points, x_mx, x_mn, guiVars.normalizevar.get())
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # Read the efficiency file if it was loaded
+    energy_values = []
+    efficiency_values = []
+    
+    effic_file_name = guiVars.effic_var.get()
+    
+    if effic_file_name != 'No':
+        energy_values, efficiency_values = initialize_detectorEfficiency(effic_file_name)
+    
+    # ---------------------------------------------------------------------------------------------------------------
+    # Calculate the final y values
+    peak = guiVars.type_var.get()
+    
+    generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # Calculate the normalization multiplyer
+    y0 = guiVars.yoffset.get()
+    
+    if load != 'No':
+        normalization_var = normalizer(y0, max(generalVars.exp_y), max(generalVars.ytot))
+    else:
+        # If we try to normalize without an experimental spectrum
+        if guiVars.normalizevar.get() == 'ExpMax':
+            messagebox.showwarning("No experimental spectrum is loaded", "Choose different normalization option")
+            # Reset the normalizer to the default
+            guiVars.normalizevar.set('No')
+        normalization_var = normalizer(y0, 1, max(generalVars.ytot))
+    
+    # ---------------------------------------------------------------------------------------------------------------
+    # Autofit:
+    number_of_fit_variables = 0
+    if guiVars.autofitvar.get() == 'Yes':
+        # We can only fit if we have an experimental spectrum
+        if load != 'No':
+            number_of_fit_variables, enoffset, y0, res, ytot_max, normalization_var = execute_autofit(sat, enoffset, y0, res, num_of_points, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, time_of_click)
+        else:
+            messagebox.showerror("Error", "Autofit is only avaliable if an experimental spectrum is loaded")
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Plot the selected lines
+    simu_plot(sat, graph_area, enoffset, normalization_var, y0, guiVars.totalvar.get())
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Calculate the residues
+    if load != 'No':
+        global residues_graph
+        
+        calculateResidues(generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, generalVars.xfinal, enoffset, normalization_var, guiVars.normalizevar.get(), y0, number_of_fit_variables, residues_graph)
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Set the axis labels
+    graph_area.set_ylabel('Intensity (arb. units)')
+    graph_area.legend(title=element_name, title_fontsize='large')
+    if load == 'No':
+        graph_area.set_xlabel('Energy (eV)')
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Automatic legend formating
+    format_legend(graph_area)
+
+
+def Msimu_check_bads(cs_index, cs, x, xs, rad = True):
+    """
+    Function to check if any of the transitions do not have any data for the current charge state.
+        
+        Args:
+            cs_index: index of the current charge state from the list of charge states to be plotted
+            cs: current charge state label from the list of charge states to be plotted
+            x: energy values for each of the possible transitions
+            xs: energy values for each of the possible radiative sattelite transitions for each radiative transition
+            rad: flag to check for radiative (True) or auger (False) missing data
+        
+        Returns:
+            bad_selection: total number of transitions that had no data
+            bad_lines: dictionary to hold the lines that arent found for each charge state 
+    """
+    bad_lines = {}
+    bad_selection = 0
+    
+    if rad:
+        for index, transition in enumerate(the_dictionary):
+            if the_dictionary[transition]["selected_state"]:
+                if not x[cs_index * len(the_dictionary) + index] and not all(xs[cs_index * len(the_dictionary) + index]):
+                    if cs not in bad_lines:
+                        bad_lines[cs] = [transition]
+                    else:
+                        bad_lines[cs].append(transition)
+
+                    x[cs_index * len(the_dictionary) + index] = []
+                    bad_selection += 1
+    else:
+        for index, transition in enumerate(the_aug_dictionary):
+                    if the_aug_dictionary[transition]["selected_state"]:
+                        if not x[cs_index * len(the_aug_dictionary) + index]:
+                            if cs not in bad_lines:
+                                bad_lines[cs] = [transition]
+                            else:
+                                bad_lines[cs].append(transition)
+
+                            x[cs_index * len(the_aug_dictionary) + index] = []
+                            bad_selection += 1
+    
+    return bad_selection, bad_lines
+
+
+def report_MbadSelection(bad_lines, ploted_cs):
+    """
+    Function to format the text and create a window to report on the selected transitions that do not have data for each charge state.
+        
+        Args:
+            bad_lines: dictionary to hold the lines that arent found for each charge state
+            ploted_cs: expected charge states that need to be plotted.
+        
+        Returns:
+            Nothing. The message box with the info is shown.
+    """
+    
+    # As there are multiples charge state we need a more detailed feedback for which lines failed
+    # First we build the text that is going to be shown
+    text = "Transitions not available for:\n"
+    for cs in bad_lines:
+        text += cs + ": " + str(bad_lines[cs]) + "\n"
+
+    messagebox.showwarning("Wrong Transition", text)
+
+    # Even if one of the transitions is not plotted for on charge state we might still have
+    # At least one charge state where that transition is plotted
+    # For this we show if there are any transitions that were plotted 0 times
+    # Check if all charge states have at least one transition that was not plotted
+    if len(bad_lines) == len(ploted_cs):
+        # Initialize the intersection
+        intersection = list(bad_lines.values())[-1]
+        # Calculate the intersection of all the charge states
+        for cs in bad_lines:
+            l1 = set(bad_lines[cs])
+            intersection = list(l1.intersection(intersection))
+
+        # Show the common transitions that were not plotted
+        messagebox.showwarning("Common Transitions", intersection)
+    else:
+        messagebox.showwarning("Common Transitions", "Every transition is plotted for at least 1 charge state.")
+
+
+def Msimu_plot(ploted_cs, sat, graph_area, enoffset, normalization_var, y0, total):
+    """
+    Function to plot the simulation values according to the selected transition types.
+    
+        Args:
+            ploted_cs: list of the charge states to be plotted
+            sat: simulation type selected in the interface (diagram, satellite, auger)
+            graph_area: matplotlib graph to plot the simulated transitions
+            enoffset: energy offset user value from the interface
+            normalization_var: normalization multiplier to normalize intensity when plotting
+            y0: intensity offset user value from the interface
+            total: flag from the interface to plot the total intensity
+        
+        Returns:
+            Nothing. The interface is updated with the new simulation data.
+    """
+    
+    if 'Diagram' in sat:
+        for cs_index, cs in enumerate(ploted_cs):
+            for index, key in enumerate(the_dictionary):
+                if the_dictionary[key]["selected_state"]:
+                    # Plot the selected transition
+                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[cs_index * len(the_dictionary) + index]) * normalization_var) + y0, label=cs + ' ' + key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                    graph_area.legend()
+    if 'Satellites' in sat:
+        for cs_index, cs in enumerate(ploted_cs):
+            for index, key in enumerate(the_dictionary):
+                if the_dictionary[key]["selected_state"]:
+                    for l, m in enumerate(generalVars.yfinals[cs_index * len(the_dictionary) + index]):
+                        # Dont plot the satellites that have a max y value of 0
+                        if max(m) != 0:
+                            # Plot the selected transition
+                            graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[cs_index * len(the_dictionary) + index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                            graph_area.legend()
+    if sat == 'Auger':
+        for cs_index, cs in enumerate(ploted_cs):
+            for index, key in enumerate(the_aug_dictionary):
+                if the_aug_dictionary[key]["selected_state"]:
+                    # Plot the selected transition
+                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[cs_index * len(the_aug_dictionary) + index]) * normalization_var) + y0, label=cs + ' ' + key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                    graph_area.legend()
+    if total == 'Total':
+        # Plot the selected transition
+        graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')  # Plot the simulation of all lines
+        graph_area.legend()
+
+
+def make_Msimulation(sim, f, graph_area, time_of_click):
+    """
+    Function to calculate the values that will be sent to the plot function.
+        
+        Args:
+            sim: tkinter simulation window to update the progress bar
+            f: matplotlib figure object where to plot the data
+            graph_area: matplotlib graph to plot the simulated transitions
+            time_of_click: timestamp to use when saving files for this simulation plot
+            
+        Returns:
+            Nothing, the simulation is performed, the transitions are plotted and the interface is updated
+    """
+    
+    sat = guiVars.satelite_var.get()
+    beam = guiVars.excitation_energy.get()
+    
+    # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
+    if sat != 'Auger':
+        # Initialize the charge states we have to loop through
+        charge_states = generalVars.rad_PCS + generalVars.rad_NCS
+
+        # Before plotting we filter the charge state that need to be plotted (mix_val != 0)
+        # And store the charge state values in this list
+        ploted_cs = []
+
+        # Loop the charge states
+        for cs_index, cs in enumerate(charge_states):
+            # Initialize the mixture value chosen for this charge state
+            mix_val = '0.0'
+            # Flag to check if this is a negative or positive charge state
+            ncs = False
+
+            # Check if this charge state is positive or negative and get the mix value
+            if cs_index < len(generalVars.rad_PCS):
+                mix_val = generalVars.PCS_radMixValues[cs_index].get()
+            else:
+                mix_val = generalVars.NCS_radMixValues[cs_index - len(generalVars.rad_PCS)].get()
+                ncs = True
+
+            # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
+            if mix_val != '0.0':
+                ploted_cs.append(cs)
+
+        # Initialize the x, y and w arrays, taking into account the number of charge states to plot, for both the non satellites and satellites (xs, ys, ws) transitions
+        x, y, w, xs, ys, ws = initialize_XYW('Radiative_CS', ploted_cs)
+
+        # Loop the charge states to plot
+        for cs_index, cs in enumerate(ploted_cs):
+            # -------------------------------------------------------------------------------------------
+            # Read the selected transitions
+            # In this case we first store all the values for the transitions and then we calculate the y values to be plotted according to a profile
+            for index, transition in enumerate(the_dictionary):
+                if the_dictionary[transition]["selected_state"]:
+                    # Same as sticks but we dont care about the number of transitions
+                    _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadCSTrantitionsVals(transition, 0, ncs, cs, beam)
+                    
+                    if 'Diagram' in sat:
+                        # Store the values in a list containing all the transitions and charge states to simulate
+                        x[cs_index * len(the_dictionary) + index], y[cs_index * len(the_dictionary) + index], w[cs_index * len(the_dictionary) + index] = simu_diagram(diag_sim_val)
+                    if 'Satellites' in sat:
+                        # Store the values in a list containing all the charge states and transitions to simulate
+                        xs[cs_index * len(the_dictionary) + index], ys[cs_index * len(the_dictionary) + index], ws[cs_index * len(the_dictionary) + index] = simu_sattelite(sat_sim_val, low_level, high_level, beam)
+
+            # -------------------------------------------------------------------------------------------
+            # Check if there are any transitions with missing rates
+            bad_selection, bad_lines = Msimu_check_bads(cs_index, cs, x, xs, True)
+        
+        report_MbadSelection(bad_lines, ploted_cs)
+    else:
+        # Initialize the charge states we have to loop through
+        charge_states = generalVars.aug_PCS + generalVars.aug_NCS
+
+        # Before plotting we filter the charge state that need to be plotted (mix_val != 0)
+        # And store the charge state values in this list
+        ploted_cs = []
+
+        # Loop the charge states
+        for cs_index, cs in enumerate(charge_states):
+            # Initialize the mixture value chosen for this charge state
+            mix_val = '0.0'
+            # Flag to check if this is a negative or positive charge state
+            ncs = False
+
+            # Check if this charge state is positive or negative and get the mix value
+            if cs_index < len(generalVars.aug_PCS):
+                mix_val = generalVars.PCS_augMixValues[cs_index].get()
+            else:
+                mix_val = generalVars.NCS_augMixValues[cs_index - len(generalVars.aug_PCS)].get()
+                ncs = True
+            
+            # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
+            if mix_val != '0.0':
+                ploted_cs.append(cs)
+
+        # Initialize the x, y and w arrays, taking into account the number of charge states to plot, for both the non satellites and satellites (xs, ys, ws) transitions
+        x, y, w, xs, ys, ws = initialize_XYW('Auger_CS', ploted_cs)
+        
+        # Loop the charge states to plot
+        for cs_index, cs in enumerate(ploted_cs):
+            # Loop the possible auger transitions
+            for index, transition in enumerate(the_aug_dictionary):
+                if the_aug_dictionary[transition]["selected_state"]:
+                    # Same as stick but we dont care about the number of transitions
+                    _, aug_sim_val = updateAugCSTransitionsVals(transition, 0, ncs, cs, beam)
+                    
+                    # Store the values in a list containing all the transitions to simulate
+                    x[cs_index * len(the_aug_dictionary) + index], y[cs_index * len(the_aug_dictionary) + index], w[cs_index * len(the_aug_dictionary) + index] = simu_auger(aug_sim_val)
+
+            # -------------------------------------------------------------------------------------------
+            # Check if there are any transitions with missing rates
+            bad_selection, bad_lines = Msimu_check_bads(cs_index, cs, x, xs, False)
+        
+        report_MbadSelection(bad_lines, ploted_cs)
+
+    # -------------------------------------------------------------------------------------------
+    # Calculate the xfinal set of x values to use in the simulation
+    enoffset = guiVars.energy_offset.get()
+    res = guiVars.exp_resolution.get()
+    num_of_points = guiVars.number_points.get()
+    x_mx = guiVars.x_max.get()
+    x_mn = guiVars.x_min.get()
+    
+    calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points, bad_selection)
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # Load and plot the experimental spectrum
+    generalVars.exp_x = []
+    generalVars.exp_y = []
+    generalVars.exp_sigma = []
+    min_exp_lim = 0
+    max_exp_lim = 0
+    
+    # If we have loaded an experimental spectrum
+    load = guiVars.loadvar.get()
+    
+    if load != 'No':
+        graph_area, exp_spectrum = initialize_expElements(f, load, enoffset, num_of_points, x_mx, x_mn, guiVars.normalizevar.get())
+
+    # ---------------------------------------------------------------------------------------------------------------
+    # Read the efficiency file if it was loaded
+    efficiency_values = []
+    energy_values = []
+    
+    effic_file_name = guiVars.effic_var.get()
+    
+    if effic_file_name != 'No':
+        energy_values, efficiency_values = initialize_detectorEfficiency(effic_file_name)
+    
+    # ---------------------------------------------------------------------------------------------------------------
+    # Calculate the final y values
+    peak = guiVars.type_var.get()
+    
+    generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
+    
+    # ---------------------------------------------------------------------------------------------------------------
+    # Calculate the normalization multiplyer
+    y0 = guiVars.yoffset.get()
+    
+    if load != 'No':
+        normalization_var = normalizer(y0, max(generalVars.exp_y), max(generalVars.ytot))
+    else:
+        # If we try to normalize without an experimental spectrum
+        if guiVars.normalizevar.get() == 'ExpMax':
+            messagebox.showwarning("No experimental spectrum is loaded", "Choose different normalization option")
+            # Reset the normalizer to the default
+            guiVars.normalizevar.set('No')
+        normalization_var = normalizer(y0, 1, max(generalVars.ytot))
+    
+    # ---------------------------------------------------------------------------------------------------------------
+    # Autofit:
+    number_of_fit_variables = 0
+    if guiVars.autofitvar.get() == 'Yes':
+        # We can only fit if we have an experimental spectrum
+        if load != 'No':
+            number_of_fit_variables, enoffset, y0, res, ytot_max, normalization_var = execute_autofit(sat, enoffset, y0, res, num_of_points, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, time_of_click)
+        else:
+            messagebox.showerror("Error", "Autofit is only avaliable if an experimental spectrum is loaded")
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Plot the selected lines
+    Msimu_plot(ploted_cs, sat, graph_area, enoffset, normalization_var, y0, guiVars.totalvar.get())
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Calculate the residues
+    if load != 'No':
+        global residues_graph
+        
+        calculateResidues(generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, generalVars.xfinal, enoffset, normalization_var, guiVars.normalizevar.get(), y0, number_of_fit_variables, residues_graph)
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Set the axis labels
+    graph_area.set_ylabel('Intensity (arb. units)')
+    graph_area.legend(title=element_name, title_fontsize='large')
+    if load == 'No':
+        graph_area.set_xlabel('Energy (eV)')
+    
+    # ------------------------------------------------------------------------------------------------------------------------
+    # Automatic legend formating
+    format_legend(graph_area)
+
+
 # Profile plotter. Plots each transition, applying the selected profile
 def plot_stick(sim, f, graph_area):
     """
@@ -1004,1040 +2204,21 @@ def plot_stick(sim, f, graph_area):
     
     graph_area.legend(title=element_name)
     
-    # Get the values from the interface
-    autofit = guiVars.autofitvar.get()
-    total = guiVars.totalvar.get()
-    normalize = guiVars.normalizevar.get()
-    y0 = guiVars.yoffset.get()
-    enoffset = guiVars.energy_offset.get()
-    res = guiVars.exp_resolution.get()
-    spectype = guiVars.choice_var.get()
-    peak = guiVars.type_var.get()
-    load = guiVars.loadvar.get()
-    effic_file_name = guiVars.effic_var.get()
-    sat = guiVars.satelite_var.get()
-    num_of_points = guiVars.number_points.get()
-    x_mx = guiVars.x_max.get()
-    x_mn = guiVars.x_min.get()
-    
     number_of_fit_variables = 0
     
-    # Set of colors to choose from when plotting
-    col2 = [['b'], ['g'], ['r'], ['c'], ['m'], ['y'], ['k']]
-    """
-    Set of colors to choose from when plotting
-    """
-    
-    # Initialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
-    x = [[] for i in range(len(the_dictionary))]
-    """
-    Energy values for each of the possible radiative transitions
-    """
-    y = [[] for i in range(len(the_dictionary))]
-    """
-    Intensity values for each of the possible radiative transitions
-    """
-    w = [[] for i in range(len(the_dictionary))]
-    """
-    Natural width values for each of the possible radiative transitions
-    """
-    xs = [[[] for i in generalVars.label1] for j in x]
-    """
-    Energy values for each of the possible radiative satellite transitions
-    """
-    ys = [[[] for i in generalVars.label1] for j in y]
-    """
-    Intensity values for each of the possible radiative satellite transitions
-    """
-    ws = [[[] for i in generalVars.label1] for j in w]
-    """
-    Natural width values for each of the possible radiative satellite transitions
-    """
-    
-    # Initialize the normalization multiplier
-    normalization_var = 1
-    """
-    Normalization multiplyer
-    """
+    spectype = guiVars.choice_var.get()
     
     # --------------------------------------------------------------------------------------------------------------------------
     if spectype == 'Stick':
-        # Variable for the total number of plotted transitions
-        num_of_transitions = 0
-        # Variable for the number of transitions that were selected but no rates were found
-        bad_selection = 0
-        
-        # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
-        if sat != 'Auger':
-            # Loop possible radiative transitions
-            for transition in the_dictionary:
-                # If the transition was selected
-                if the_dictionary[transition]["selected_state"]:
-                    # Filter the radiative and satellite rates corresponding to this transition
-                    num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadTransitionVals(transition, num_of_transitions)
-                    
-                    # -------------------------------------------------------------------------------------------
-                    if sat == 'Diagram':
-                        # Check if there is no data for the selected transition
-                        if not diag_stick_val:
-                            # Make a 0 vector to still have data to plot
-                            diag_stick_val = [['0' for i in range(16)]]
-                            # Show a warning that this transition has no data and add it to the bad selection count
-                            messagebox.showwarning("Wrong Transition", transition + " is not Available")
-                            bad_selection += 1
-                        
-                        # Plot the transition
-                        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
-                    elif sat == 'Satellites':
-                        # Check if there is no data for the selected transition
-                        if not sat_stick_val:
-                            # Make a 0 vector to still have data to plot
-                            sat_stick_val = [['0' for i in range(16)]]
-                            # Show a warning that this transition has no data and add it to the bad selection count
-                            messagebox.showwarning("Wrong Transition", transition + " is not Available")
-                            bad_selection += 1
-                        
-                        # Initialize a variable to control the progress bar
-                        b1 = 0
-                        
-                        # Loop all shake levels read in the shake weights file
-                        for ind, key in enumerate(generalVars.label1):
-                            # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                            
-                            # Check for at least one satellite transition
-                            if len(sat_stick_val_ind) > 1:
-                                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
-                            
-                            # Update the progress bar
-                            b1 += 100 / len(generalVars.label1)
-                            guiVars.progress_var.set(b1)
-                            sim.update_idletasks()
-                    elif sat == 'Diagram + Satellites':
-                        # Diagram block
-                        if not diag_stick_val:
-                            diag_stick_val = [['0' for i in range(16)]]
-                            messagebox.showwarning("Wrong Transition", "Diagram info. for " + transition + " is not Available")
-                            bad_selection += 1
-                        
-                        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
-                        
-                        # Satellite block
-                        if not sat_stick_val:
-                            sat_stick_val = [['0' for i in range(16)]]
-                            messagebox.showwarning("Wrong Transition", "Satellites info.  for " + transition + " is not Available")
-                            bad_selection += 1
-                        
-                        # Initialize a variable to control the progress bar
-                        b1 = 0
-                        for ind, key in enumerate(generalVars.label1):
-                            # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                            
-                            # Check for at least one satellite transition
-                            if len(sat_stick_val_ind) > 1:
-                                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
-                            
-                            # Update the progress bar
-                            b1 += 100 / len(generalVars.label1)
-                            guiVars.progress_var.set(b1)
-                            sim.update_idletasks()
-
-                # Set the labels for the axis
-                graph_area.set_xlabel('Energy (eV)')
-                graph_area.set_ylabel('Intensity (arb. units)')
-        else:
-            # Loop possible auger transitions
-            for transition in the_aug_dictionary:
-                # If the transition is selected
-                if the_aug_dictionary[transition]["selected_state"]:
-                    # Filter the auger rates for this transition
-                    num_of_transitions, aug_stick_val = updateAugTransitionVals(transition, num_of_transitions)
-                    
-                    # Check if there is no data for the selected transition
-                    if not aug_stick_val:
-                        # Make a 0 vector to still have data to plot
-                        aug_stick_val = [['0' for i in range(16)]]
-                        # Show a warning that this transition has no data and add it to the bad selection count
-                        messagebox.showwarning("Wrong Transition", "Auger info. for " + transition + " is not Available")
-                        bad_selection += 1
-                    
-                    # Plot the transition
-                    stem_ploter(aug_stick_val, transition, 'Auger', 0, 0)
-
-                # Set the labels for the axis
-                graph_area.set_xlabel('Energy (eV)')
-                graph_area.set_ylabel('Intensity (arb. units)')
-
-        if num_of_transitions == 0:
-            messagebox.showerror("No Transition", "No transition was chosen")
-        elif bad_selection != 0:
-            messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+        make_stick(sim, graph_area)
     # --------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'M_Stick':
-        # Variable for the total number of plotted transitions
-        num_of_transitions = 0
-        # Variable for the number of transitions that were selected but no rates were found
-        bad_selection = 0
-        
-        # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
-        if sat != 'Auger':
-            # Initialize the charge states we have to loop through
-            charge_states = generalVars.rad_PCS + generalVars.rad_NCS
-
-            # Loop the charge states
-            for cs_index, cs in enumerate(charge_states):
-                # Initialize the mixture value chosen for this charge state
-                mix_val = '0.0'
-                # Flag to check if this is a negative or positive charge state
-                ncs = False
-
-                # Check if this charge state is positive or negative and get the mix value
-                if cs_index < len(generalVars.rad_PCS):
-                    mix_val = generalVars.PCS_radMixValues[cs_index].get()
-                else:
-                    mix_val = generalVars.NCS_radMixValues[cs_index - len(generalVars.rad_PCS)].get()
-                    ncs = True
-                
-                # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
-                if mix_val != '0.0':
-                    # Loop the possible radiative transitions
-                    for transition in the_dictionary:
-                        # If the transition is selected
-                        if the_dictionary[transition]["selected_state"]:
-                            # Filter the radiative and satellite rates for this transition and charge state
-                            num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadCSTrantitionsVals(transition, num_of_transitions, ncs, cs)
-                            
-                            if sat == 'Diagram':
-                                # Check if there is no data for the selected transition
-                                if not diag_stick_val:
-                                    # Make a 0 vector to still have data to plot
-                                    diag_stick_val = [['0' for i in range(16)]]
-                                    # Show a warning that this transition has no data and add it to the bad selection count
-                                    messagebox.showwarning("Wrong Transition", transition + " is not Available for charge state: " + cs)
-                                    bad_selection += 1
-                                
-                                stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
-                            elif sat == 'Satellites':
-                                # Check if there is no data for the selected transition
-                                if not sat_stick_val:
-                                    # Make a 0 vector to still have data to plot
-                                    sat_stick_val = [['0' for i in range(16)]]
-                                    # Show a warning that this transition has no data and add it to the bad selection count
-                                    messagebox.showwarning("Wrong Transition", transition + " is not Available for charge state: " + cs)
-                                    bad_selection += 1
-                                
-                                # Initialize a variable to control the progress bar
-                                b1 = 0
-                                
-                                # Loop the shake levels read from the shake weights file
-                                for ind, key in enumerate(generalVars.label1):
-                                    # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                    sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                                    
-                                    # Check for at least one satellite transition
-                                    if len(sat_stick_val_ind) > 1:
-                                        stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
-                                    
-                                    # Update the progress bar
-                                    b1 += 100 / len(generalVars.label1)
-                                    guiVars.progress_var.set(b1)
-                                    sim.update_idletasks()
-                            elif sat == 'Diagram + Satellites':
-                                # Diagram block
-                                if not diag_stick_val:
-                                    diag_stick_val = [['0' for i in range(16)]]
-                                    messagebox.showwarning("Wrong Transition", "Diagram info. for " + transition + " is not Available")
-                                    bad_selection += 1
-                                
-                                stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
-                                
-                                # Satellite block
-                                if not sat_stick_val:
-                                    sat_stick_val = [['0' for i in range(16)]]
-                                    messagebox.showwarning("Wrong Transition", "Satellites info.  for " + transition + " is not Available")
-                                    bad_selection += 1
-                                
-                                # Initialize a variable to control the progress bar
-                                b1 = 0
-                                
-                                for ind, key in enumerate(generalVars.label1):
-                                    # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                    sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                                    
-                                    # Check for at least one satellite transition
-                                    if len(sat_stick_val_ind) > 1:
-                                        stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
-                                    
-                                    # Update the progress bar
-                                    b1 += 100 / len(generalVars.label1)
-                                    guiVars.progress_var.set(b1)
-                                    sim.update_idletasks()
-
-                        # Set the labels for the axis
-                        graph_area.set_xlabel('Energy (eV)')
-                        graph_area.set_ylabel('Intensity (arb. units)')
-        else:
-            # Initialize the charge states we have to loop through
-            charge_states = generalVars.aug_PCS + generalVars.aug_NCS
-
-            # Loop the charge states
-            for cs_index, cs in enumerate(charge_states):
-                # Initialize the mixture value chosen for this charge state
-                mix_val = '0.0'
-                # Flag to check if this is a negative or positive charge state
-                ncs = False
-
-                # Check if this charge state is positive or negative and get the mix value
-                if cs_index < len(generalVars.aug_PCS):
-                    mix_val = generalVars.PCS_augMixValues[cs_index].get()
-                else:
-                    mix_val = generalVars.NCS_augMixValues[cs_index - len(generalVars.aug_PCS)].get()
-                    ncs = True
-                
-                # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
-                if mix_val != '0.0':
-                    # Loop the possible auger transitions
-                    for transition in the_aug_dictionary:
-                        # If the transition is selected
-                        if the_aug_dictionary[transition]["selected_state"]:
-                            # Filter the auger rates for this transition and charge state
-                            num_of_transitions, aug_stick_val = updateAugCSTransitionsVals(transition, num_of_transitions, ncs, cs)
-                            
-                            # Check if there is no data for the selected transition
-                            if not aug_stick_val:
-                                # Make a 0 vector to still have data to plot
-                                aug_stick_val = [['0' for i in range(16)]]
-                                # Show a warning that this transition has no data and add it to the bad selection count
-                                messagebox.showwarning("Wrong Transition", "Auger info. for " + transition + " is not Available for charge state: " + cs)
-                                bad_selection += 1
-                            
-                            stem_ploter(aug_stick_val, cs + ' ' + transition, 'Auger_CS', 0, 0)
-
-                        # Set the labels for the axis
-                        graph_area.set_xlabel('Energy (eV)')
-                        graph_area.set_ylabel('Intensity (arb. units)')
-
-        if num_of_transitions == 0:
-            messagebox.showerror("No Transition", "No transition was chosen")
-        elif bad_selection != 0:
-            messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+        make_Mstick(sim, graph_area)
     # --------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'Simulation':
-        # Variable for the number of transitions that were selected but no rates were found
-        bad_selection = 0
-
-        if sat != 'Auger':
-            # -------------------------------------------------------------------------------------------
-            # Read the selected transitions
-            # In this case we first store all the values for the transitions and then we calculate the y values to be plotted according to a profile
-            for index, transition in enumerate(the_dictionary):
-                if the_dictionary[transition]["selected_state"]:
-                    # Same filter as the sticks but we dont keep track of the number of selected transitions
-                    _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadTransitionVals(transition, 0)
-                    
-                    if sat == 'Diagram':
-                        # Extract the energies, intensities and widths of the transition (different j and eigv)
-                        x1 = [float(row[8]) for row in diag_sim_val]
-                        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
-                        w1 = [float(row[15]) for row in diag_sim_val]
-                        # Store the values in a list containing all the transitions to simulate
-                        x[index] = x1
-                        y[index] = y1
-                        w[index] = w1
-                    elif sat == 'Satellites':
-                        # Loop the shake labels read from the shake weights file
-                        for ind, key in enumerate(generalVars.label1):
-                            # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val)
-                            
-                            # Check if there is at least one satellite transition
-                            if len(sat_sim_val_ind) > 1:
-                                # Extract the energies, intensities and widths of the transition (different j and eigv)
-                                x1s = [float(row[8]) for row in sat_sim_val_ind]
-                                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
-                                w1s = [float(row[15]) for row in sat_sim_val_ind]
-                                # Store the values in a list containing all the transitions to simulate
-                                xs[index][ind] = x1s
-                                ys[index][ind] = y1s
-                                ws[index][ind] = w1s
-                    elif sat == 'Diagram + Satellites':
-                        # Extract the energies, intensities and widths of the transition (different j and eigv)
-                        x1 = [float(row[8]) for row in diag_sim_val]
-                        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
-                        w1 = [float(row[15]) for row in diag_sim_val]
-                        # Store the values in a list containing all the transitions to simulate
-                        x[index] = x1
-                        y[index] = y1
-                        w[index] = w1
-                        
-                        # -----------------------------------------------------------------------------------------------
-                        # Loop the shake labels read from the shake weights file
-                        for ind, key in enumerate(generalVars.label1):
-                            # Filter the specific combination of radiative transition and shake level (key) to simulate
-                            sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val)
-                            
-                            # Check if there is at least one satellite transition
-                            if len(sat_sim_val_ind) > 1:
-                                # Extract the energies, intensities and widths of the transition (different j and eigv)
-                                x1s = [float(row[8]) for row in sat_sim_val_ind]
-                                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
-                                w1s = [float(row[15]) for row in sat_sim_val_ind]
-                                # Store the values in a list containing all the transitions to simulate
-                                xs[index][ind] = x1s
-                                ys[index][ind] = y1s
-                                ws[index][ind] = w1s
-            # -------------------------------------------------------------------------------------------
-            # Check if there are any transitions with missing rates
-            for index, transition in enumerate(the_dictionary):
-                if the_dictionary[transition]["selected_state"]:
-                    if not x[index] and not any(xs[index]):
-                        messagebox.showwarning("Wrong Transition", transition + " is not Available")
-                        x[index] = []
-                        bad_selection += 1
-        else:
-            # Reinitialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
-            x = [[] for i in range(len(the_aug_dictionary))]
-            y = [[] for i in range(len(the_aug_dictionary))]
-            w = [[] for i in range(len(the_aug_dictionary))]
-            xs = [[[] for i in generalVars.label1] for j in x]
-            ys = [[[] for i in generalVars.label1] for j in y]
-            ws = [[[] for i in generalVars.label1] for j in w]
-
-            # Loop possible auger transitions
-            for index, transition in enumerate(the_aug_dictionary):
-                if the_aug_dictionary[transition]["selected_state"]:
-                    # Same as the stick but we dont care about the number of transitions
-                    _, aug_stick_val = updateAugTransitionVals(transition, 0)
-                    
-                    # Extract the energies, intensities and widths of the transition (different j and eigv)
-                    x1 = [float(row[8]) for row in aug_sim_val]
-                    y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) for row in aug_sim_val]
-                    w1 = [float(row[10]) for row in aug_sim_val]
-                    # Store the values in a list containing all the transitions to simulate
-                    x[index] = x1
-                    y[index] = y1
-                    w[index] = w1
-
-            # -------------------------------------------------------------------------------------------
-            # Check if there are any transitions with missing rates
-            for index, transition in enumerate(the_aug_dictionary):
-                if the_aug_dictionary[transition]["selected_state"]:
-                    if not x[index]:
-                        messagebox.showwarning("Wrong Auger Transition", transition + " is not Available")
-                        x[index] = []
-                        bad_selection += 1
-
-        # -------------------------------------------------------------------------------------------
-        # In this block we calculate the xfinal set of x values to use in the simulation
-        # We take into account if an experimental spectrum is loaded, the energy of the transitions and resolution
-        try:
-            if sat == 'Diagram':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getBounds(x, w)
-
-            elif sat == 'Satellites' or sat == 'Diagram + Satellites':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getSatBounds(xs, ws)
-            
-            elif sat == 'Auger':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getBounds(x, w)
-            
-            # Update the bounds considering the resolution and energy offset chosen
-            array_input_max, array_input_min = updateMaxMinVals(x_mx, x_mn, deltaE, max_value, min_value, res, enoffset)
-            
-            # Calculate the grid of x values to use in the simulation
-            generalVars.xfinal = np.linspace(array_input_min, array_input_max, num=num_of_points)
-        except ValueError:
-            generalVars.xfinal = np.zeros(num_of_points)
-            if not bad_selection:
-                messagebox.showerror("No Transition", "No transition was chosen")
-            else:
-                messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
-
-        # ---------------------------------------------------------------------------------------------------------------
-        # Load and plot the experimental spectrum
-        generalVars.exp_x = []
-        generalVars.exp_y = []
-        generalVars.exp_sigma = []
-        min_exp_lim = 0
-        max_exp_lim = 0
-        
-        # If we have loaded an experimental spectrum
-        if load != 'No':
-            # Initialize the residue plot and load the experimental spectrum
-            graph_area, residues_graph, exp_spectrum = guiVars.setupExpPlot(f, load, element_name)
-            
-            # Extract the x, y, and sigma values from the loaded experimental spectrum
-            xe, ye, sigma_exp = extractExpVals(exp_spectrum)
-            
-            # Bind the experimental spectrum to the calculated bounds
-            generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma = getBoundedExp(xe, ye, sigma_exp, enoffset, num_of_points, x_mx, x_mn)
-
-            # Calculate the final energy values
-            generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
-
-            # plot the experimental spectrum and residues graph
-            guiVars.plotExp(graph_area, residues_graph, generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, normalize)
-
-        # ---------------------------------------------------------------------------------------------------------------
-        # Read the efficiency file if it was loaded
-        efficiency_values = []
-        energy_values = []
-        if effic_file_name != 'No':
-            try:
-                # Read and load the file
-                efficiency = loadEfficiency(effic_file_name)
-                # Convert to floats
-                for pair in efficiency:
-                    energy_values.append(float(pair[0]))
-                    efficiency_values.append(float(pair[1]))
-            except FileNotFoundError:
-                messagebox.showwarning("Error", "Efficiency File is not Avaliable")
-        
-        # ---------------------------------------------------------------------------------------------------------------
-        # Calculate the final y values
-        generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
-
-        # ---------------------------------------------------------------------------------------------------------------
-        # Calculate the normalization multiplyer
-        if load != 'No':
-            normalization_var = normalizer(y0, max(exp_y), max(generalVars.ytot))
-        else:
-            # If we try to normalize without an experimental spectrum
-            if guiVars.normalizevar.get() == 'ExpMax':
-                messagebox.showwarning("No experimental spectrum is loaded", "Choose different normalization option")
-                # Reset the normalizer to the default
-                guiVars.normalizevar.set('No')
-            normalization_var = normalizer(y0, 1, max(generalVars.ytot))
-        
-        # ---------------------------------------------------------------------------------------------------------------
-        # Autofit:
-        if autofit == 'Yes':
-            # We can only fit if we have an experimental spectrum
-            if load != 'No':
-                # Initialize the fit parameters
-                params = initializeFitParameters(generalVars.exp_x, generalVars.exp_y, enoffset, y0, res)
-                
-                # Minimize the function for the initialized parameters
-                number_of_fit_variables = len(params.valuesdict())
-                minner = Minimizer(func2min, params, fcn_args=(sim, generalVars.exp_x, generalVars.exp_y, num_of_points, sat, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, enoffset))
-                result = minner.minimize()
-                
-                # Get the fitted values
-                enoffset, y0, res, ytot_max = fetchFittedParams(result)
-
-                # Calculate the energy values for the fitted parameters
-                generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
-                # Calculate the normalizer multiplier for the fitted parameters
-                normalization_var = normalizer(y0, max(generalVars.exp_y), ytot_max)
-                
-                # Calculate the intensities for the fitted parameters
-                generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
-                
-                # Ask to save the fit
-                if messagebox.askyesno("Fit Saving", "Do you want to save this fit?"):
-                    # Get the report on the fit
-                    report = fit_report(result)
-                    # Export the fit to file
-                    exportFit(time_of_click, report)
-                
-            else:
-                messagebox.showerror("Error", "Autofit is only avaliable if an experimental spectrum is loaded")
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Plot the selected lines
-        if sat == 'Diagram':
-            for index, key in enumerate(the_dictionary):
-                if the_dictionary[key]["selected_state"]:
-                    # Plot the selected transition
-                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                    graph_area.legend()
-        elif sat == 'Satellites':
-            for index, key in enumerate(the_dictionary):
-                if the_dictionary[key]["selected_state"]:
-                    for l, m in enumerate(generalVars.yfinals[index]):
-                        # Dont plot the satellites that have a max y value of 0
-                        if max(m) != 0:
-                            # Plot the selected transition
-                            graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                            graph_area.legend()
-        elif sat == 'Diagram + Satellites':
-            # Diagram block
-            for index, key in enumerate(the_dictionary):
-                if the_dictionary[key]["selected_state"]:
-                    # Plot the selected transition
-                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                    graph_area.legend()
-
-            # Satellite block
-            for index, key in enumerate(the_dictionary):
-                if the_dictionary[key]["selected_state"]:
-                    for l, m in enumerate(generalVars.yfinals[index]):
-                        if max(m) != 0:
-                            # Plot the selected transition
-                            graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                            graph_area.legend()
-        elif sat == 'Auger':
-            for index, key in enumerate(the_aug_dictionary):
-                if the_aug_dictionary[key]["selected_state"]:
-                    # Plot the selected transition
-                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                    graph_area.legend()
-        if total == 'Total':
-            # Plot the selected transition
-            graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')
-            graph_area.legend()
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Calculate the residues
-        if load != 'No':
-            calculateResidues(generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, generalVars.xfinal, enoffset, normalization_var, normalize, y0, number_of_fit_variables, residues_graph)
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Set the axis labels
-        graph_area.set_ylabel('Intensity (arb. units)')
-        graph_area.legend(title=element_name, title_fontsize='large')
-        if load == 'No':
-            graph_area.set_xlabel('Energy (eV)')
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Automatic legend formating
-        # Number of total labels to place in the legend
-        number_of_labels = len(graph_area.legend().get_texts())
-        # Initialize the numeber of legend columns
-        legend_columns = 1
-        # Initialize the number of legends in each columns
-        labels_per_columns = number_of_labels / legend_columns
-        # While we have more than 10 labels per column
-        while labels_per_columns > 10:
-            # Add one more column
-            legend_columns += 1
-            # Recalculate the number of labels per column
-            labels_per_columns = number_of_labels / legend_columns
-        
-        # Place the legend with the final number of columns
-        graph_area.legend(ncol=legend_columns)
+        make_simulation(sim, f, graph_area, time_of_click)
     # --------------------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'M_Simulation':
-        # Variable for the number of transitions that were selected but no rates were found
-        bad_selection = 0
-        
-        # Dictionary to hold the lines that arent found for each charge state
-        bad_lines = {}
-
-        # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
-        if sat != 'Auger':
-            # Initialize the charge states we have to loop through
-            charge_states = generalVars.rad_PCS + generalVars.rad_NCS
-
-            # Before plotting we filter the charge state that need to be plotted (mix_val != 0)
-            # And store the charge state values in this list
-            ploted_cs = []
-
-            # Loop the charge states
-            for cs_index, cs in enumerate(charge_states):
-                # Initialize the mixture value chosen for this charge state
-                mix_val = '0.0'
-                # Flag to check if this is a negative or positive charge state
-                ncs = False
-
-                # Check if this charge state is positive or negative and get the mix value
-                if cs_index < len(generalVars.rad_PCS):
-                    mix_val = generalVars.PCS_radMixValues[cs_index].get()
-                else:
-                    mix_val = generalVars.NCS_radMixValues[cs_index - len(generalVars.rad_PCS)].get()
-                    ncs = True
-
-                # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
-                if mix_val != '0.0':
-                    ploted_cs.append(cs)
-
-            # Reinitialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
-            # Taking into account the number of charge states to plot
-            x = [[] for i in range(len(the_dictionary) * len(ploted_cs))]
-            y = [[] for i in range(len(the_dictionary) * len(ploted_cs))]
-            w = [[] for i in range(len(the_dictionary) * len(ploted_cs))]
-            xs = [[[] for i in generalVars.label1] for j in x]
-            ys = [[[] for i in generalVars.label1] for j in y]
-            ws = [[[] for i in generalVars.label1] for j in w]
-
-            # Loop the charge states to plot
-            for cs_index, cs in enumerate(ploted_cs):
-                # -------------------------------------------------------------------------------------------
-                # Read the selected transitions
-                # In this case we first store all the values for the transitions and then we calculate the y values to be plotted according to a profile
-                for index, transition in enumerate(the_dictionary):
-                    if the_dictionary[transition]["selected_state"]:
-                        # Same as sticks but we dont care about the number of transitions
-                        _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadCSTrantitionsVals(transition, 0, ncs, cs)
-                        
-                        if sat == 'Diagram':
-                            # Extract the energies, intensities and widths of the transition (different j and eigv)
-                            # Here we also weight int the mix value
-                            x1 = [float(row[8]) for row in diag_sim_val]
-                            y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * float(row[-1]) for row in diag_sim_val]
-                            w1 = [float(row[15]) for row in diag_sim_val]
-                            # Store the values in a list containing all the transitions and charge states to simulate
-                            x[cs_index * len(the_dictionary) + index] = x1
-                            y[cs_index * len(the_dictionary) + index] = y1
-                            w[cs_index * len(the_dictionary) + index] = w1
-                        elif sat == 'Satellites':
-                            # Loop the shake labels read from the shake weights file
-                            for ind, key in enumerate(generalVars.label1):
-                                # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                                
-                                # Check if there is at least one satellite transition
-                                if len(sat_sim_val_ind) > 1:
-                                    # Extract the energies, intensities and widths of the transition (different j and eigv)
-                                    x1s = [float(row[8]) for row in sat_sim_val_ind]
-                                    y1s = [float(float(row[11]) * generalVars.shakeweights[ind] * float(row[-1])) for row in sat_sim_val_ind]
-                                    w1s = [float(row[15]) for row in sat_sim_val_ind]
-                                    # Store the values in a list containing all the charge states and transitions to simulate
-                                    xs[cs_index * len(the_dictionary) + index][ind] = x1s
-                                    ys[cs_index * len(the_dictionary) + index][ind] = y1s
-                                    ws[cs_index * len(the_dictionary) + index][ind] = w1s
-                        elif sat == 'Diagram + Satellites':
-                            # Extract the energies, intensities and widths of the transition (different j and eigv)
-                            x1 = [float(row[8])for row in diag_sim_val]
-                            y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * float(row[-1]) for row in diag_sim_val]
-                            w1 = [float(row[15]) for row in diag_sim_val]
-                            # Store the values in a list containing all the charge states and transitions to simulate
-                            x[cs_index * len(the_dictionary) + index] = x1
-                            y[cs_index * len(the_dictionary) + index] = y1
-                            w[cs_index * len(the_dictionary) + index] = w1
-                            
-                            # ---------------------------------------------------------------------------------------------------------------------
-                            # Loop the shake labels read from the shake weights file
-                            for ind, key in enumerate(generalVars.label1):
-                                # Filter the specific combination of radiative transition and shake level (key) to simulate
-                                sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val)
-                                
-                                # Check if there is at least one satellite transition
-                                if len(sat_sim_val_ind) > 1:
-                                    # Extract the energies, intensities and widths of the transition (different j and eigv)
-                                    x1s = [float(row[8]) for row in sat_sim_val_ind]
-                                    y1s = [float(float(row[11]) * generalVars.shakeweights[ind] * float(row[-1])) for row in sat_sim_val_ind]
-                                    w1s = [float(row[15]) for row in sat_sim_val_ind]
-                                    # Store the values in a list containing all the charge states and transitions to simulate
-                                    xs[cs_index * len(the_dictionary) + index][ind] = x1s
-                                    ys[cs_index * len(the_dictionary) + index][ind] = y1s
-                                    ws[cs_index * len(the_dictionary) + index][ind] = w1s
-                # -------------------------------------------------------------------------------------------
-                # Check if there are any transitions with missing rates
-                for index, transition in enumerate(the_dictionary):
-                    if the_dictionary[transition]["selected_state"]:
-                        if not x[cs_index * len(the_dictionary) + index] and not any(xs[cs_index * len(the_dictionary) + index]):
-                            if cs not in bad_lines:
-                                bad_lines[cs] = [transition]
-                            else:
-                                bad_lines[cs].append(transition)
-
-                            x[cs_index * len(the_dictionary) + index] = []
-                            bad_selection += 1
-
-            # As there are multiples charge state we need a more detailed feedback for which lines failed
-            # First we build the text that is going to be shown
-            text = "Transitions not available for:\n"
-            for cs in bad_lines:
-                text += cs + ": " + str(bad_lines[cs]) + "\n"
-
-            messagebox.showwarning("Wrong Transition", text)
-
-            # Even if one of the transitions is not plotted for on charge state we might still have
-            # At least one charge state where that transition is plotted
-            # For this we show if there are any transitions that were plotted 0 times
-            # Check if all charge states have at least one transition that was not plotted
-            if len(bad_lines) == len(ploted_cs):
-                # Initialize the intersection
-                intersection = list(bad_lines.values())[-1]
-                # Calculate the intersection of all the charge states
-                for cs in bad_lines:
-                    l1 = set(bad_lines[cs])
-                    intersection = list(l1.intersection(intersection))
-
-                # Show the common transitions that were not plotted
-                messagebox.showwarning("Common Transitions", intersection)
-            else:
-                messagebox.showwarning("Common Transitions", "Every transition is plotted for at least 1 charge state.")
-        else:
-            # Initialize the charge states we have to loop through
-            charge_states = generalVars.aug_PCS + generalVars.aug_NCS
-
-            # Before plotting we filter the charge state that need to be plotted (mix_val != 0)
-            # And store the charge state values in this list
-            ploted_cs = []
-
-            # Loop the charge states
-            for cs_index, cs in enumerate(charge_states):
-                # Initialize the mixture value chosen for this charge state
-                mix_val = '0.0'
-                # Flag to check if this is a negative or positive charge state
-                ncs = False
-
-                # Check if this charge state is positive or negative and get the mix value
-                if cs_index < len(generalVars.aug_PCS):
-                    mix_val = generalVars.PCS_augMixValues[cs_index].get()
-                else:
-                    mix_val = generalVars.NCS_augMixValues[cs_index - len(generalVars.aug_PCS)].get()
-                    ncs = True
-                
-                # Check if the mix value is not 0, otherwise no need to plot the transitions for this charge state
-                if mix_val != '0.0':
-                    ploted_cs.append(cs)
-
-            # Reinitialize the x, y and w arrays for both the non satellites and satellites (xs, ys, ws) transitions
-            # Taking into account the number of charge states to plot
-            x = [[] for i in range(len(the_aug_dictionary) * len(ploted_cs))]
-            y = [[] for i in range(len(the_aug_dictionary) * len(ploted_cs))]
-            w = [[] for i in range(len(the_aug_dictionary) * len(ploted_cs))]
-            xs = [[[] for i in generalVars.label1] for j in x]
-            ys = [[[] for i in generalVars.label1] for j in y]
-            ws = [[[] for i in generalVars.label1] for j in w]
-
-            # Loop the charge states to plot
-            for cs_index, cs in enumerate(ploted_cs):
-                # Loop the possible auger transitions
-                for index, transition in enumerate(the_aug_dictionary):
-                    if the_aug_dictionary[transition]["selected_state"]:
-                        # Same as stick but we dont care about the number of transitions
-                        _, aug_stick_val = updateAugCSTransitionsVals(transition, 0, ncs, cs)
-                        
-                        # Extract the energies, intensities and widths of the transition (different j and eigv)
-                        x1 = [float(row[8]) for row in aug_sim_val]
-                        y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) * float(row[-1]) for row in aug_sim_val]
-                        w1 = [float(row[10]) for row in aug_sim_val]
-                        # Store the values in a list containing all the transitions to simulate
-                        x[cs_index * len(the_aug_dictionary) + index] = x1
-                        y[cs_index * len(the_aug_dictionary) + index] = y1
-                        w[cs_index * len(the_aug_dictionary) + index] = w1
-
-                # -------------------------------------------------------------------------------------------
-                # Check if there are any transitions with missing rates
-                for index, transition in enumerate(the_aug_dictionary):
-                    if the_aug_dictionary[transition]["selected_state"]:
-                        if not x[cs_index * len(the_aug_dictionary) + index]:
-                            if cs not in bad_lines:
-                                bad_lines[cs] = [transition]
-                            else:
-                                bad_lines[cs].append(transition)
-
-                            x[cs_index * len(the_aug_dictionary) + index] = []
-                            bad_selection += 1
-
-            # Same report as for the radiative transitions
-            text = "Transitions not available for:\n"
-            for cs in bad_lines:
-                text += cs + ": " + str(bad_lines[cs]) + "\n"
-
-            messagebox.showwarning("Wrong Auger Transition", text)
-
-            if len(bad_lines) == len(ploted_cs):
-                intersection = list(bad_lines.values())[-1]
-                for cs in bad_lines:
-                    l1 = set(bad_lines[cs])
-                    intersection = list(l1.intersection(intersection))
-
-                messagebox.showwarning("Common Auger Transitions", intersection)
-            else:
-                messagebox.showwarning("Common Auger Transitions", "Every transition is plotted for at least 1 charge state.")
-
-        # -------------------------------------------------------------------------------------------
-        # In this block we calculate the xfinal set of x values to use in the simulation
-        # We take into account if an experimental spectrum is loaded, the energy of the transitions and resolution
-        try:
-            if sat == 'Diagram':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getBounds(x, w)
-
-            elif sat == 'Satellites' or sat == 'Diagram + Satellites':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getSatBounds(xs, ws)
-                
-            elif sat == 'Auger':
-                # Get the bounds of the energies and widths to plot
-                deltaE, max_value, min_value = getBounds(x, w)
-            
-            # Update the bounds considering the resolution and energy offset chosen
-            array_input_max, array_input_min = updateMaxMinVals(x_mx, x_mn, deltaE, max_value, min_value, res, enoffset)
-            
-            # Calcular o array com os valores de xfinal igualmente espacados
-            generalVars.xfinal = np.linspace(array_input_min, array_input_max, num=num_of_points)
-        except ValueError:
-            generalVars.xfinal = np.zeros(num_of_points)
-            if not bad_selection:
-                messagebox.showerror("No Transition", "No transition was chosen")
-            else:
-                messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
-
-        # ---------------------------------------------------------------------------------------------------------------
-        # Load and plot the experimental spectrum
-        generalVars.exp_x = []
-        generalVars.exp_y = []
-        generalVars.exp_sigma = []
-        min_exp_lim = 0
-        max_exp_lim = 0
-        
-        # If we have loaded an experimental spectrum
-        if load != 'No':
-            # Initialize the residue plot and load the experimental spectrum
-            graph_area, residues_graph, exp_spectrum = guiVars.setupExpPlot(f, load, element_name)
-            
-            # Extract the x, y, and sigma values from the loaded experimental spectrum
-            xe, ye, sigma_exp = extractExpVals(exp_spectrum)
-            
-            # Bind the experimental spectrum to the calculated bounds
-            generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma = getBoundedExp(xe, ye, sigma_exp, enoffset, num_of_points, x_mx, x_mn)
-
-            # Calculate the final energy values
-            generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
-
-            # plot the experimental spectrum and residues graph
-            guiVars.plotExp(graph_area, residues_graph, generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, normalize)
-
-        # ---------------------------------------------------------------------------------------------------------------
-        # Read the efficiency file if it was loaded
-        efficiency_values = []
-        energy_values = []
-        if effic_file_name != 'No':
-            try:
-                # Read and load the file
-                efficiency = loadEfficiency(effic_file_name)
-                # Convert to floats
-                for pair in efficiency:
-                    energy_values.append(float(pair[0]))
-                    efficiency_values.append(float(pair[1]))
-            except FileNotFoundError:
-                messagebox.showwarning("Error", "Efficiency File is not Avaliable")
-        
-        # ---------------------------------------------------------------------------------------------------------------
-        # Calculate the final y values
-        generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
-        
-        # ---------------------------------------------------------------------------------------------------------------
-        # Calculate the normalization multiplyer
-        if load != 'No':
-            normalization_var = normalizer(y0, max(exp_y), max(generalVars.ytot))
-        else:
-            # If we try to normalize without an experimental spectrum
-            if guiVars.normalizevar.get() == 'ExpMax':
-                messagebox.showwarning("No experimental spectrum is loaded", "Choose different normalization option")
-                # Reset the normalizer to the default
-                guiVars.normalizevar.set('No')
-            normalization_var = normalizer(y0, 1, max(generalVars.ytot))
-        
-        # ---------------------------------------------------------------------------------------------------------------
-        # Autofit:
-        if autofit == 'Yes':
-            # We can only fit if we have an experimental spectrum
-            if load != 'No':
-                # Initialize the fit parameters
-                params = initializeFitParameters(generalVars.exp_x, generalVars.exp_y, enoffset, y0, res)
-                
-                # Minimize the function for the initialized parameters
-                number_of_fit_variables = len(params.valuesdict())
-                minner = Minimizer(func2min, params, fcn_args=(sim, generalVars.exp_x, generalVars.exp_y, num_of_points, sat, peak, x, y, w, xs, ys, ws, energy_values, efficiency_values, enoffset))
-                result = minner.minimize()
-                
-                # Get the fitted values
-                enoffset, y0, res, ytot_max = fetchFittedParams(result)
-
-                # Calculate the energy values for the fitted parameters
-                generalVars.xfinal = np.array(np.linspace(min(generalVars.exp_x) - enoffset, max(generalVars.exp_x) - enoffset, num=num_of_points))
-                # Calculate the normalizer multiplier for the fitted parameters
-                normalization_var = normalizer(y0, max(exp_y), ytot_max)
-                
-                # Calculate the intensities for the fitted parameters
-                generalVars.ytot, generalVars.yfinal, generalVars.yfinals = y_calculator(sim, sat, peak, generalVars.xfinal, x, y, w, xs, ys, ws, res, energy_values, efficiency_values, enoffset)
-                
-                # Ask to save the fit
-                if messagebox.askyesno("Fit Saving", "Do you want to save this fit?"):
-                    # Get the report on the fit
-                    report = fit_report(result)
-                    # Export the fit to file
-                    exportFit(time_of_click, report)
-                
-            else:
-                messagebox.showerror("Error", "Autofit is only avaliable if an experimental spectrum is loaded")
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Plot the selected lines
-        if sat == 'Diagram':
-            for cs_index, cs in enumerate(ploted_cs):
-                for index, key in enumerate(the_dictionary):
-                    if the_dictionary[key]["selected_state"]:
-                        # Plot the selected transition
-                        graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[cs_index * len(the_dictionary) + index]) * normalization_var) + y0, label=cs + ' ' + key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                        graph_area.legend()
-        elif sat == 'Satellites':
-            for cs_index, cs in enumerate(ploted_cs):
-                for index, key in enumerate(the_dictionary):
-                    if the_dictionary[key]["selected_state"]:
-                        for l, m in enumerate(generalVars.yfinals[cs_index * len(the_dictionary) + index]):
-                            # Dont plot the satellites that have a max y value of 0
-                            if max(m) != 0:
-                                # Plot the selected transition
-                                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[cs_index * len(the_dictionary) + index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                                graph_area.legend()
-        elif sat == 'Diagram + Satellites':
-            for cs_index, cs in enumerate(ploted_cs):
-                # Diagram block
-                for index, key in enumerate(the_dictionary):
-                    if the_dictionary[key]["selected_state"]:
-                        # Plot the selected transition
-                        graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[cs_index * len(the_dictionary) + index]) * normalization_var) + y0, label=cs + ' ' + key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                        graph_area.legend()
-
-                # Satellite block
-                for index, key in enumerate(the_dictionary):
-                    if the_dictionary[key]["selected_state"]:
-                        for l, m in enumerate(generalVars.yfinals[cs_index * len(the_dictionary) + index]):
-                            if max(m) != 0:
-                                # Plot the selected transition
-                                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[cs_index * len(the_dictionary) + index][l]) * normalization_var) + y0, label=cs + ' ' + key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                                graph_area.legend()
-        elif sat == 'Auger':
-            for cs_index, cs in enumerate(ploted_cs):
-                for index, key in enumerate(the_aug_dictionary):
-                    if the_aug_dictionary[key]["selected_state"]:
-                        # Plot the selected transition
-                        graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[cs_index * len(the_aug_dictionary) + index]) * normalization_var) + y0, label=cs + ' ' + key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                        graph_area.legend()
-        if total == 'Total':
-            # Plot the selected transition
-            graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')  # Plot the simulation of all lines
-            graph_area.legend()
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Calculate the residues
-        if load != 'No':
-            calculateResidues(generalVars.exp_x, generalVars.exp_y, generalVars.exp_sigma, generalVars.xfinal, enoffset, normalization_var, normalize, y0, number_of_fit_variables, residues_graph)
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Set the axis labels
-        graph_area.set_ylabel('Intensity (arb. units)')
-        graph_area.legend(title=element_name, title_fontsize='large')
-        if load == 'No':
-            graph_area.set_xlabel('Energy (eV)')
-        
-        # ------------------------------------------------------------------------------------------------------------------------
-        # Automatic legend formating
-        # Number of total labels to place in the legend
-        number_of_labels = len(graph_area.legend().get_texts())
-        # Initialize the numeber of legend columns
-        legend_columns = 1
-        # Initialize the number of legends in each columns
-        labels_per_columns = number_of_labels / legend_columns
-        # While we have more than 10 labels per column
-        while labels_per_columns > 10:
-            # Add one more column
-            legend_columns += 1
-            # Recalculate the number of labels per column
-            labels_per_columns = number_of_labels / legend_columns
-        
-        # Place the legend with the final number of columns
-        graph_area.legend(ncol=legend_columns)
+        make_Msimulation(sim, f, graph_area, time_of_click)
 
     f.canvas.draw()

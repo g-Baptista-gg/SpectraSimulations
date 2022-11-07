@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>SpectraSimulations_git.SpectraSimulation13 API documentation</title>
+<title>SpectraSimulations_git.SpectraSimulation API documentation</title>
 <meta name="description" content="Application entry point.
 The first window with the periodic table is defined here, as well as the following window where we select the atomic …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -20,7 +20,7 @@ The first window with the periodic table is defined here, as well as the followi
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>SpectraSimulations_git.SpectraSimulation13</code></h1>
+<h1 class="title">Module <code>SpectraSimulations_git.SpectraSimulation</code></h1>
 </header>
 <section id="section-intro">
 <p>Application entry point.
@@ -36,24 +36,24 @@ The first window with the periodic table is defined here, as well as the followi
 We make use of Tkinter for the application interface, and several other modules for data manipulation and plotting.
 &#34;&#34;&#34;
 
-# GUI Imports
+#GUI Imports
 from tkinter import *
 from tkinter import ttk
 
-# OS Imports for paths and files
+#OS Imports for paths and files
 import os
 from pathlib import Path
 
-# Module Imports: Atomic Parameter Selection
+#Module Imports: Atomic Parameter Selection
 from aps.Yields import fetchYields
 from aps.LvlWidths import fetchWidths
 from aps.CrossSections import fetchSections
 from aps.SpecSimu import simulateSpectra
 
-# Static data import: periodic table values
+#Static data import: periodic table values
 from data.variables import per_table
 
-# GUI utils: destroy window
+#GUI utils: destroy window
 from utils.interface import destroy
 
 # Get the full path of the directory where the program is running
@@ -64,28 +64,26 @@ Full path of the directory where the program is running
 
 # ---------------------------------------------------------------------------------------------------------------
 # Function to choose the type of atomic parameters we want to fetch after selecting the element
-
-
 def calculate(element, ap, parent):
     &#34;&#34;&#34;
     Function that launches the correct atomic parameter simulation after selection on the interface.
-
+        
         Args:
             element: list with the z value of the element to simulate and the name of the element
             ap: integer identifying which atomic parameter was selected in the interface
             parent: parent window object, i.e. the master window where we bind following graphical objects to
-
+        
         Returns:
             If the function executed correctly it will return 0 (C style)
     &#34;&#34;&#34;
     if ap == 1:
-        fetchYields(dir_path, element)
+        fetchYields(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 2:
-        fetchWidths(dir_path, element)
+        fetchWidths(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 3:
-        fetchSections(dir_path, element)
+        fetchSections(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 4:
         simulateSpectra(dir_path, element, parent)
@@ -93,22 +91,21 @@ def calculate(element, ap, parent):
 
 # ---------------------------------------------------------------------------------------------------------------
 # Configurate the window that apears after the periodic table where we choose the atomic parameters we want
-
-
 def params(element):
     &#34;&#34;&#34;
     Function that creates and configures the interface where we select which atomic parameters we want to simulate.
-
+        
         Args:
             element: list with the z value of the element to simulate and the name of the element
-
+        
         Returns:
             Nothing this is just a wrapper for the window creation
     &#34;&#34;&#34;
     # Create new window to select the atomic parameters
     parameters = Tk()
-    &#34;&#34;&#34;Window object&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Window object
+    &#34;&#34;&#34;
     # Window title
     parameters.title(&#34;Atomic Parameters&#34;)
 
@@ -121,19 +118,19 @@ def params(element):
         3 = Cross Sections
         4 = Spectra Simulations
     &#34;&#34;&#34;
-
     # Initialize as 1 (yields)
     check_var.set(1)
-
+    
     # ---------------------------------------------------------------------------------------------------------------
     # Setup the window frame and grid system
     subelem = ttk.Frame(parameters, padding=&#34;3 3 12 12&#34;)
-    &#34;&#34;&#34;Window frame object&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Window frame object
+    &#34;&#34;&#34;
     subelem.grid(column=0, row=0, sticky=(N, W, E, S))
     subelem.columnconfigure(0, weight=1)
     subelem.rowconfigure(0, weight=1)
-
+    
     # ---------------------------------------------------------------------------------------------------------------
     # Buttons and label for the interface
     ttk.Button(subelem, text=&#34;Get&#34;, command=lambda: calculate(element, check_var.get(), parameters)).grid(column=6, row=5, sticky=E, columnspan=2)
@@ -148,23 +145,21 @@ def params(element):
 
 # ---------------------------------------------------------------------------------------------------------------
 # Define our Tkinter GUI application entry point
-
-
 class App(Tk):
     &#34;&#34;&#34;
     Main application class.
     This is the Tkinter interface application entry point
     &#34;&#34;&#34;
-
+    
     # Define how to initialize the window
     def __init__(self):
         &#34;&#34;&#34;
         Initialization function for the application.
         The first window is also defined here where we show a periodic table from which we can select the element we want to simulate.
-
+            
             Args:
                 self: the application object
-
+            
             Returns:
                 Nothing, we just initialize the class variables
         &#34;&#34;&#34;
@@ -177,7 +172,7 @@ class App(Tk):
             Function to dispose of the window and launch the window to select the atomic parameters
                 Parameters:
                     element: list with the z value of the element to simulate and the name of the element
-
+                
                 Returns:
                     Nothing, the window is disposed of and a new one is launched
             &#34;&#34;&#34;
@@ -203,9 +198,10 @@ class App(Tk):
         self.Label4 = Label(self, text=&#34;** Actinoids&#34;, font=20)
         self.Label4.grid(row=10, column=1, columnspan=2)
 
+        
         # Create all buttons for the periodic table with a loop
         for i, element in enumerate(per_table):
-            Button(self, text=element[3], width=5, height=2, bg=element[5],command=lambda i=i: quit_window([(i + 1), per_table[i][2]])).grid(row=element[6], column=element[7])
+            Button(self, text=element[3], width=5, height=2, bg=element[5], command=lambda i=i: quit_window([(i + 1), per_table[i][2]])).grid(row=element[6], column=element[7])
 
         # Configure padding around the buttons
         for child in self.winfo_children():
@@ -231,7 +227,7 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-variables">Global variables</h2>
 <dl>
-<dt id="SpectraSimulations_git.SpectraSimulation13.dir_path"><code class="name">var <span class="ident">dir_path</span></code></dt>
+<dt id="SpectraSimulations_git.SpectraSimulation.dir_path"><code class="name">var <span class="ident">dir_path</span></code></dt>
 <dd>
 <div class="desc"><p>Full path of the directory where the program is running</p></div>
 </dd>
@@ -240,7 +236,7 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="SpectraSimulations_git.SpectraSimulation13.calculate"><code class="name flex">
+<dt id="SpectraSimulations_git.SpectraSimulation.calculate"><code class="name flex">
 <span>def <span class="ident">calculate</span></span>(<span>element, ap, parent)</span>
 </code></dt>
 <dd>
@@ -260,30 +256,30 @@ Returns:
 <pre><code class="python">def calculate(element, ap, parent):
     &#34;&#34;&#34;
     Function that launches the correct atomic parameter simulation after selection on the interface.
-
+        
         Args:
             element: list with the z value of the element to simulate and the name of the element
             ap: integer identifying which atomic parameter was selected in the interface
             parent: parent window object, i.e. the master window where we bind following graphical objects to
-
+        
         Returns:
             If the function executed correctly it will return 0 (C style)
     &#34;&#34;&#34;
     if ap == 1:
-        fetchYields(dir_path, element)
+        fetchYields(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 2:
-        fetchWidths(dir_path, element)
+        fetchWidths(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 3:
-        fetchSections(dir_path, element)
+        fetchSections(dir_path, z)
     # ---------------------------------------------------------------------------------------------------------------
     elif ap == 4:
         simulateSpectra(dir_path, element, parent)
     return 0</code></pre>
 </details>
 </dd>
-<dt id="SpectraSimulations_git.SpectraSimulation13.main"><code class="name flex">
+<dt id="SpectraSimulations_git.SpectraSimulation.main"><code class="name flex">
 <span>def <span class="ident">main</span></span>(<span>)</span>
 </code></dt>
 <dd>
@@ -299,7 +295,7 @@ Returns:
     a = App()</code></pre>
 </details>
 </dd>
-<dt id="SpectraSimulations_git.SpectraSimulation13.params"><code class="name flex">
+<dt id="SpectraSimulations_git.SpectraSimulation.params"><code class="name flex">
 <span>def <span class="ident">params</span></span>(<span>element)</span>
 </code></dt>
 <dd>
@@ -317,17 +313,18 @@ Returns:
 <pre><code class="python">def params(element):
     &#34;&#34;&#34;
     Function that creates and configures the interface where we select which atomic parameters we want to simulate.
-
+        
         Args:
             element: list with the z value of the element to simulate and the name of the element
-
+        
         Returns:
             Nothing this is just a wrapper for the window creation
     &#34;&#34;&#34;
     # Create new window to select the atomic parameters
     parameters = Tk()
-    &#34;&#34;&#34;Window object&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Window object
+    &#34;&#34;&#34;
     # Window title
     parameters.title(&#34;Atomic Parameters&#34;)
 
@@ -340,19 +337,19 @@ Returns:
         3 = Cross Sections
         4 = Spectra Simulations
     &#34;&#34;&#34;
-
     # Initialize as 1 (yields)
     check_var.set(1)
-
+    
     # ---------------------------------------------------------------------------------------------------------------
     # Setup the window frame and grid system
     subelem = ttk.Frame(parameters, padding=&#34;3 3 12 12&#34;)
-    &#34;&#34;&#34;Window frame object&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Window frame object
+    &#34;&#34;&#34;
     subelem.grid(column=0, row=0, sticky=(N, W, E, S))
     subelem.columnconfigure(0, weight=1)
     subelem.rowconfigure(0, weight=1)
-
+    
     # ---------------------------------------------------------------------------------------------------------------
     # Buttons and label for the interface
     ttk.Button(subelem, text=&#34;Get&#34;, command=lambda: calculate(element, check_var.get(), parameters)).grid(column=6, row=5, sticky=E, columnspan=2)
@@ -371,7 +368,7 @@ Returns:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="SpectraSimulations_git.SpectraSimulation13.App"><code class="flex name class">
+<dt id="SpectraSimulations_git.SpectraSimulation.App"><code class="flex name class">
 <span>class <span class="ident">App</span></span>
 </code></dt>
 <dd>
@@ -394,16 +391,16 @@ Returns:
     Main application class.
     This is the Tkinter interface application entry point
     &#34;&#34;&#34;
-
+    
     # Define how to initialize the window
     def __init__(self):
         &#34;&#34;&#34;
         Initialization function for the application.
         The first window is also defined here where we show a periodic table from which we can select the element we want to simulate.
-
+            
             Args:
                 self: the application object
-
+            
             Returns:
                 Nothing, we just initialize the class variables
         &#34;&#34;&#34;
@@ -416,7 +413,7 @@ Returns:
             Function to dispose of the window and launch the window to select the atomic parameters
                 Parameters:
                     element: list with the z value of the element to simulate and the name of the element
-
+                
                 Returns:
                     Nothing, the window is disposed of and a new one is launched
             &#34;&#34;&#34;
@@ -442,9 +439,10 @@ Returns:
         self.Label4 = Label(self, text=&#34;** Actinoids&#34;, font=20)
         self.Label4.grid(row=10, column=1, columnspan=2)
 
+        
         # Create all buttons for the periodic table with a loop
         for i, element in enumerate(per_table):
-            Button(self, text=element[3], width=5, height=2, bg=element[5],command=lambda i=i: quit_window([(i + 1), per_table[i][2]])).grid(row=element[6], column=element[7])
+            Button(self, text=element[3], width=5, height=2, bg=element[5], command=lambda i=i: quit_window([(i + 1), per_table[i][2]])).grid(row=element[6], column=element[7])
 
         # Configure padding around the buttons
         for child in self.winfo_children():
@@ -476,20 +474,20 @@ Returns:
 </li>
 <li><h3><a href="#header-variables">Global variables</a></h3>
 <ul class="">
-<li><code><a title="SpectraSimulations_git.SpectraSimulation13.dir_path" href="#SpectraSimulations_git.SpectraSimulation13.dir_path">dir_path</a></code></li>
+<li><code><a title="SpectraSimulations_git.SpectraSimulation.dir_path" href="#SpectraSimulations_git.SpectraSimulation.dir_path">dir_path</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="SpectraSimulations_git.SpectraSimulation13.calculate" href="#SpectraSimulations_git.SpectraSimulation13.calculate">calculate</a></code></li>
-<li><code><a title="SpectraSimulations_git.SpectraSimulation13.main" href="#SpectraSimulations_git.SpectraSimulation13.main">main</a></code></li>
-<li><code><a title="SpectraSimulations_git.SpectraSimulation13.params" href="#SpectraSimulations_git.SpectraSimulation13.params">params</a></code></li>
+<li><code><a title="SpectraSimulations_git.SpectraSimulation.calculate" href="#SpectraSimulations_git.SpectraSimulation.calculate">calculate</a></code></li>
+<li><code><a title="SpectraSimulations_git.SpectraSimulation.main" href="#SpectraSimulations_git.SpectraSimulation.main">main</a></code></li>
+<li><code><a title="SpectraSimulations_git.SpectraSimulation.params" href="#SpectraSimulations_git.SpectraSimulation.params">params</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="SpectraSimulations_git.SpectraSimulation13.App" href="#SpectraSimulations_git.SpectraSimulation13.App">App</a></code></h4>
+<h4><code><a title="SpectraSimulations_git.SpectraSimulation.App" href="#SpectraSimulations_git.SpectraSimulation.App">App</a></code></h4>
 </li>
 </ul>
 </li>

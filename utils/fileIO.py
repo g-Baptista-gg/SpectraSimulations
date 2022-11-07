@@ -54,13 +54,14 @@ def file_namer(simulation_or_fit, fit_time, extension):
     return file_name
 
 # Function to save the simulation data into an excel file
-def write_to_xls(type_t, enoffset, y0, residues_graph):
+def write_to_xls(type_t, enoffset, beam_ener, y0, residues_graph):
     """
     Function to save the current simulation data into an excel file
         
         Args:
             type_t: type of transitions simulated (diagram, satellite, diagram + satellite, auger)
             enoffset: energy offset chosen in the simulation
+            beam_ener: beam energy chosen in the simulation
             y0: intensity offset chosen in the simulation
             residues_graph: residues graph object from where we will extract the calculated residues
             
@@ -297,6 +298,10 @@ def write_to_xls(type_t, enoffset, y0, residues_graph):
             matrix[i][transition_columns + 2] = sigm[i]
 
         matrix[0][transition_columns + 4] = data.variables.chi_sqrd
+        
+        if beam_ener != 0:
+            matrix[1][transition_columns + 4] = 'Beam Energy (eV)'
+            matrix[2][transition_columns + 4] = beam_ener
 
         transition_columns += 5
     
@@ -501,6 +506,33 @@ def readShakeWeights(shakeweights_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Shake Weigths File is not Avaliable")
 
+
+def readBindingEnergies(binding_file):
+    """
+    Function to read the orbital binding energies file
+        
+        Args:
+            binding_file: file path of the orbital binding energies file
+            
+        Returns:
+            bindings: list with the binding energies in float
+            label1: list with the orbital labels
+    """
+    try:
+        with open(binding_file, 'r') as bindings_f:
+            # Write the lines into a list
+            bindings_m = [x.strip('\n').split(',') for x in bindings_f.readlines()]
+            bindings = []
+            label1 = []
+            
+            # Loop the read values and store them in two lists
+            for i in range(len(bindings_m)):
+                bindings.append(float(bindings_m[i][1]))
+                label1.append(bindings_m[i][0])
+            
+            return bindings, label1
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "Orbital Binding Energies File is not Avaliable")
 
 
 # ----------------------------------------------------- #

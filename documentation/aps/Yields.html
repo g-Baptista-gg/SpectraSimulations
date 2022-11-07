@@ -36,79 +36,93 @@ First we search and read all the required files to calculate the selected elemen
 Second we initialize the Tkinter interface and present the values calculated from the input data
 &#34;&#34;&#34;
 
-# GUI Imports
+#GUI Imports
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 
-# File IO Imports
+#File IO Imports
 from utils.fileIO import file_namer, write_to_xls
 
-# GUI utils: destroy window
+#GUI utils: destroy window
 from utils.interface import destroy
 
 
-def fetchYields(dir_path, element):
+def fetchYields(dir_path, z):
     &#34;&#34;&#34;
     Function to run the yields interface
-
+        
         Args:
             dir_path: full path to the location where the application is ran
-            element: list with the [z value, element name] to simulate
-
+            z: z value of the element to simulate
+            
         Returns:
             Nothing, we just setup the interface and all commands are bound and performed through the interface
     &#34;&#34;&#34;
-
-    z = element[0]
-
+    # This can be moved to the fileIO module later
+    # Path to the file with the yields for this element
     yields_file = dir_path / str(z) / (str(z) + &#39;-yields.out&#39;)
-    &#34;&#34;&#34;Variable with the full path to the yields file of this element&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Variable with the full path to the yields file of this element
+    &#34;&#34;&#34;
     try:
         with open(yields_file, &#39;r&#39;) as yields:
+            # Write the lines into a list
             lineyields = [x.strip(&#39;\n&#39;).split() for x in yields.readlines()]
-            &#34;&#34;&#34;Variable to hold the yields data that was read from the file&#34;&#34;&#34;
-
+            &#34;&#34;&#34;
+            Variable to hold the yields data that was read from the file
+            &#34;&#34;&#34;
             # Remove empty strings from possible uneven formating
             lineyields = list(filter(None, lineyields))
-
+        
+        # Create a window to display the yields
         atdata = Toplevel()
-        &#34;&#34;&#34;Variable to hold the tkinter yields window object&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Variable to hold the tkinter yields window object
+        &#34;&#34;&#34;
         # Window title
         atdata.title(&#34;Fluorescence and nonRadiative Yields&#34;)
-
+        
         # Make a frame in the window and initialize a grid positioning and resising for the results
         atdatayields = ttk.Frame(atdata, padding=&#34;3 3 12 12&#34;)
-        &#34;&#34;&#34;Frame with the grid system that will be used to position the data in the interface&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Frame with the grid system that will be used to position the data in the interface
+        &#34;&#34;&#34;
         atdatayields.grid(column=0, row=0, sticky=(N, W, E, S))
         atdatayields.columnconfigure(0, weight=1)
         atdatayields.rowconfigure(0, weight=1)
-
+        
         # Label objects to show the various types of yields
         ttk.Label(atdatayields, text=&#34;Fluorescence Yields&#34;).grid(column=0, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Auger Yields&#34;).grid(column=5, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Coster-Kronig Yields&#34;).grid(column=8, row=0, sticky=W, columnspan=2)
-
+        
         # Buttons for the export and program flow functions
         ttk.Button(master=atdatayields, text=&#39;Export&#39;, command=lambda: write_to_xls(1)).grid(column=12, row=0, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Back&#39;, command=lambda: destroy(atdata)).grid(column=12, row=1, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Exit&#39;, command=lambda: destroy(atdata)).grid(column=12, row=2, sticky=W, columnspan=2)
 
+        # Variable to control if we show the non radiative yields
         NR = False
-        &#34;&#34;&#34;Variable to control if we show the non radiative yields&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Variable to control if we show the non radiative yields
+        &#34;&#34;&#34;
+        # Row counter for the fluorescence yields position
         n1 = 1
-        &#34;&#34;&#34;Row counter for the fluorescence yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the fluorescence yields position
+        &#34;&#34;&#34;
+        # Row counter for the Auger yields position
         n2 = 1
-        &#34;&#34;&#34;Row counter for the Auger yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the Auger yields position
+        &#34;&#34;&#34;
+        # Row counter for the Coster-Kronig yields position
         n3 = 1
-        &#34;&#34;&#34;Row counter for the Coster-Kronig yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the Coster-Kronig yields position
+        &#34;&#34;&#34;
+        
         # Loop the lines of the file and read the yields
         for j in lineyields:
             if j[1] == &#39;FLyield&#39; and j[0] != &#39;&#39;:
@@ -121,7 +135,7 @@ def fetchYields(dir_path, element):
                 n2 = n2 + 1
             elif j[1] == &#39;Non&#39; and j[2] == &#39;Radiative&#39; and j[3] == &#39;Yields&#39;:
                 NR = True
-
+            
             if j[0] == &#39;L1&#39; and j[2] == &#39;L2&#39; and NR == True:
                 print(&#39;fL12_&#39;, &#39;=&#39;, j[3])
                 ttk.Label(atdatayields, text=&#39;fL12_&#39; + &#39;=&#39; + j[3]).grid(column=8, row=n3, sticky=W, columnspan=2)
@@ -186,13 +200,13 @@ def fetchYields(dir_path, element):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="SpectraSimulations_git.aps.Yields.fetchYields"><code class="name flex">
-<span>def <span class="ident">fetchYields</span></span>(<span>dir_path, element)</span>
+<span>def <span class="ident">fetchYields</span></span>(<span>dir_path, z)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Function to run the yields interface</p>
 <pre><code>Args:
     dir_path: full path to the location where the application is ran
-    element: list with the [z value, element name] to simulate
+    z: z value of the element to simulate
 
 Returns:
     Nothing, we just setup the interface and all commands are bound and performed through the interface
@@ -201,67 +215,81 @@ Returns:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def fetchYields(dir_path, element):
+<pre><code class="python">def fetchYields(dir_path, z):
     &#34;&#34;&#34;
     Function to run the yields interface
-
+        
         Args:
             dir_path: full path to the location where the application is ran
-            element: list with the [z value, element name] to simulate
-
+            z: z value of the element to simulate
+            
         Returns:
             Nothing, we just setup the interface and all commands are bound and performed through the interface
     &#34;&#34;&#34;
-
-    z = element[0]
-
+    # This can be moved to the fileIO module later
+    # Path to the file with the yields for this element
     yields_file = dir_path / str(z) / (str(z) + &#39;-yields.out&#39;)
-    &#34;&#34;&#34;Variable with the full path to the yields file of this element&#34;&#34;&#34;
-
+    &#34;&#34;&#34;
+    Variable with the full path to the yields file of this element
+    &#34;&#34;&#34;
     try:
         with open(yields_file, &#39;r&#39;) as yields:
+            # Write the lines into a list
             lineyields = [x.strip(&#39;\n&#39;).split() for x in yields.readlines()]
-            &#34;&#34;&#34;Variable to hold the yields data that was read from the file&#34;&#34;&#34;
-
+            &#34;&#34;&#34;
+            Variable to hold the yields data that was read from the file
+            &#34;&#34;&#34;
             # Remove empty strings from possible uneven formating
             lineyields = list(filter(None, lineyields))
-
+        
+        # Create a window to display the yields
         atdata = Toplevel()
-        &#34;&#34;&#34;Variable to hold the tkinter yields window object&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Variable to hold the tkinter yields window object
+        &#34;&#34;&#34;
         # Window title
         atdata.title(&#34;Fluorescence and nonRadiative Yields&#34;)
-
+        
         # Make a frame in the window and initialize a grid positioning and resising for the results
         atdatayields = ttk.Frame(atdata, padding=&#34;3 3 12 12&#34;)
-        &#34;&#34;&#34;Frame with the grid system that will be used to position the data in the interface&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Frame with the grid system that will be used to position the data in the interface
+        &#34;&#34;&#34;
         atdatayields.grid(column=0, row=0, sticky=(N, W, E, S))
         atdatayields.columnconfigure(0, weight=1)
         atdatayields.rowconfigure(0, weight=1)
-
+        
         # Label objects to show the various types of yields
         ttk.Label(atdatayields, text=&#34;Fluorescence Yields&#34;).grid(column=0, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Auger Yields&#34;).grid(column=5, row=0, sticky=W, columnspan=2)
         ttk.Label(atdatayields, text=&#34;Coster-Kronig Yields&#34;).grid(column=8, row=0, sticky=W, columnspan=2)
-
+        
         # Buttons for the export and program flow functions
         ttk.Button(master=atdatayields, text=&#39;Export&#39;, command=lambda: write_to_xls(1)).grid(column=12, row=0, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Back&#39;, command=lambda: destroy(atdata)).grid(column=12, row=1, sticky=W, columnspan=2)
         ttk.Button(master=atdatayields, text=&#39;Exit&#39;, command=lambda: destroy(atdata)).grid(column=12, row=2, sticky=W, columnspan=2)
 
+        # Variable to control if we show the non radiative yields
         NR = False
-        &#34;&#34;&#34;Variable to control if we show the non radiative yields&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Variable to control if we show the non radiative yields
+        &#34;&#34;&#34;
+        # Row counter for the fluorescence yields position
         n1 = 1
-        &#34;&#34;&#34;Row counter for the fluorescence yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the fluorescence yields position
+        &#34;&#34;&#34;
+        # Row counter for the Auger yields position
         n2 = 1
-        &#34;&#34;&#34;Row counter for the Auger yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the Auger yields position
+        &#34;&#34;&#34;
+        # Row counter for the Coster-Kronig yields position
         n3 = 1
-        &#34;&#34;&#34;Row counter for the Coster-Kronig yields position&#34;&#34;&#34;
-
+        &#34;&#34;&#34;
+        Row counter for the Coster-Kronig yields position
+        &#34;&#34;&#34;
+        
         # Loop the lines of the file and read the yields
         for j in lineyields:
             if j[1] == &#39;FLyield&#39; and j[0] != &#39;&#39;:
@@ -274,7 +302,7 @@ Returns:
                 n2 = n2 + 1
             elif j[1] == &#39;Non&#39; and j[2] == &#39;Radiative&#39; and j[3] == &#39;Yields&#39;:
                 NR = True
-
+            
             if j[0] == &#39;L1&#39; and j[2] == &#39;L2&#39; and NR == True:
                 print(&#39;fL12_&#39;, &#39;=&#39;, j[3])
                 ttk.Label(atdatayields, text=&#39;fL12_&#39; + &#39;=&#39; + j[3]).grid(column=8, row=n3, sticky=W, columnspan=2)
