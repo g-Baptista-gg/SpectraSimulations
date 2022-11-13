@@ -241,7 +241,7 @@ def write_to_xls(type_t, enoffset, beam_ener, y0, residues_graph):
             transition_columns += 1
         
         # Same for the satellite transitions but we require and extra loop
-        if any(data.variables.yfinals[i]) != 0:
+        if any([max(ys) for ys in data.variables.yfinals[i]]):
             for j, ys in enumerate(data.variables.yfinals[i]):
                 if max(ys) != 0:
                     for row in range(len(y)):
