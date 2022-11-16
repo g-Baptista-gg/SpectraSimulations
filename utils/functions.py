@@ -956,7 +956,7 @@ def getBoundedExp(xe, ye, sigma_exp, enoffset, num_of_points, x_mx, x_mn):
 # --------------------------------------------------------- #
 
 # Stick plotter. Plots a stick for the transition
-def stem_ploter(transition_values, transition, spec_type, ind, key):
+def stem_ploter(a, transition_values, transition, spec_type, ind, key):
     """
     Stick plotter function. Plots a stick for the transition
         
@@ -1048,7 +1048,7 @@ def stem_ploter(transition_values, transition, spec_type, ind, key):
     a.legend(ncol=legend_columns)
 
 
-def stick_diagram(diag_stick_val, transition, bad_selection, cs = ''):
+def stick_diagram(graph_area, diag_stick_val, transition, bad_selection, cs = ''):
     """
     Function to check and send the data to the stick plotter function for diagram transitions.
     
@@ -1061,24 +1061,26 @@ def stick_diagram(diag_stick_val, transition, bad_selection, cs = ''):
         Returns:
             bad: updated value of the total number of transitions that had no data
     """
+    bad = bad_selection
+    
     # Check if there is no data for the selected transition
     if not diag_stick_val:
         # Make a 0 vector to still have data to plot
         diag_stick_val = [['0' for i in range(16)]]
         # Show a warning that this transition has no data and add it to the bad selection count
         messagebox.showwarning("Wrong Transition", transition + " is not Available")
-        bad = bad_selection + 1
+        bad += 1
     
     # Plot the transition
     if cs == '':
-        stem_ploter(diag_stick_val, transition, 'Diagram', 0, 0)
+        stem_ploter(graph_area, diag_stick_val, transition, 'Diagram', 0, 0)
     else:
-        stem_ploter(diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
+        stem_ploter(graph_area, diag_stick_val, cs + ' ' + transition, 'Diagram_CS', 0, 0)
     
     return bad
 
 
-def stick_satellite(sim, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs = ''):
+def stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs = ''):
     """
     Function to check and send the data to the stick plotter function for sattelite transitions.
     
@@ -1095,13 +1097,15 @@ def stick_satellite(sim, sat_stick_val, transition, low_level, high_level, bad_s
         Returns:
             bad: updated value of the total number of transitions that had no data
     """
+    bad = bad_selection
+    
     # Check if there is no data for the selected transition
     if not sat_stick_val:
         # Make a 0 vector to still have data to plot
         sat_stick_val = [['0' for i in range(16)]]
         # Show a warning that this transition has no data and add it to the bad selection count
         messagebox.showwarning("Wrong Transition", transition + " is not Available")
-        bad = bad_selection + 1
+        bad += 1
     
     # Initialize a variable to control the progress bar
     b1 = 0
@@ -1114,9 +1118,9 @@ def stick_satellite(sim, sat_stick_val, transition, low_level, high_level, bad_s
         # Check for at least one satellite transition
         if len(sat_stick_val_ind) > 1:
             if cs == '':
-                stem_ploter(sat_stick_val_ind, transition, 'Satellites', ind, key)
+                stem_ploter(graph_area, sat_stick_val_ind, transition, 'Satellites', ind, key)
             else:
-                stem_ploter(sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
+                stem_ploter(graph_area, sat_stick_val_ind, cs + ' ' + transition, 'Satellites_CS', ind, key)
         
         # Update the progress bar
         b1 += 100 / len(generalVars.label1)
@@ -1126,7 +1130,7 @@ def stick_satellite(sim, sat_stick_val, transition, low_level, high_level, bad_s
     return bad
 
 
-def stick_auger(aug_stick_val, transition, bad_selection, cs = ''):
+def stick_auger(graph_area, aug_stick_val, transition, bad_selection, cs = ''):
     """
     Function to check and send the data to the stick plotter function for auger transitions.
     
@@ -1139,19 +1143,21 @@ def stick_auger(aug_stick_val, transition, bad_selection, cs = ''):
         Returns:
             bad: updated value of the total number of transitions that had no data
     """
+    bad = bad_selection
+    
     # Check if there is no data for the selected transition
     if not aug_stick_val:
         # Make a 0 vector to still have data to plot
         aug_stick_val = [['0' for i in range(16)]]
         # Show a warning that this transition has no data and add it to the bad selection count
         messagebox.showwarning("Wrong Transition", "Auger info. for " + transition + " is not Available")
-        bad = bad_selection + 1
+        bad += 1
     
     # Plot the transition
     if cs == '':
-        stem_ploter(aug_stick_val, transition, 'Auger', 0, 0)
+        stem_ploter(graph_area, aug_stick_val, transition, 'Auger', 0, 0)
     else:
-        stem_ploter(aug_stick_val, cs + '' + transition, 'Auger_CS', 0, 0)
+        stem_ploter(graph_area, aug_stick_val, cs + '' + transition, 'Auger_CS', 0, 0)
     
     return bad
 
@@ -1186,9 +1192,9 @@ def make_stick(sim, graph_area):
                 
                 # -------------------------------------------------------------------------------------------
                 if 'Diagram' in sat:
-                    bad_selection = stick_diagram(diag_stick_val, transition, bad_selection)
+                    bad_selection = stick_diagram(graph_area, diag_stick_val, transition, bad_selection)
                 if 'Satellites' in sat:
-                    bad_selection = stick_satellite(sim, sat_stick_val, low_level, high_level, transition, bad_selection, beam)
+                    bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam)
             
     else:
         # Loop possible auger transitions
@@ -1198,7 +1204,7 @@ def make_stick(sim, graph_area):
                 # Filter the auger rates for this transition
                 num_of_transitions, aug_stick_val = updateAugTransitionVals(transition, num_of_transitions, beam)
                 
-                bad_selection = stick_auger(aug_stick_val, transition, bad_selection)
+                bad_selection = stick_auger(graph_area, aug_stick_val, transition, bad_selection)
     
     # Set the labels for the axis
     graph_area.set_xlabel('Energy (eV)')
@@ -1258,9 +1264,9 @@ def make_Mstick(sim, graph_area):
                         num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadCSTrantitionsVals(transition, num_of_transitions, ncs, cs, beam)
                         
                         if 'Diagram' in sat:
-                            bad_selection = stick_diagram(diag_stick_val, transition, bad_selection, cs)
+                            bad_selection = stick_diagram(graph_area, diag_stick_val, transition, bad_selection, cs)
                         if 'Satellites' in sat:
-                            bad_selection = stick_satellite(sim, sat_stick_val, low_level, high_level, transition, bad_selection, beam, cs)
+                            bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs)
                     
     else:
         # Initialize the charge states we have to loop through
@@ -1289,7 +1295,7 @@ def make_Mstick(sim, graph_area):
                         # Filter the auger rates for this transition and charge state
                         num_of_transitions, aug_stick_val = updateAugCSTransitionsVals(transition, num_of_transitions, ncs, cs, beam)
                         
-                        bad_selection = stick_auger(aug_stick_val, transition, bad_selection, cs)
+                        bad_selection = stick_auger(graph_area, aug_stick_val, transition, bad_selection, cs)
 
     # Set the labels for the axis
     graph_area.set_xlabel('Energy (eV)')
