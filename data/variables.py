@@ -97,6 +97,17 @@ lineauger = []
 """
 Variable to hold the data from the auger rates read from file
 """
+#Raw data read from the 1 hole ionization energies file
+ionizationsrad = []
+"""
+Variable to hold the data from the ionization energies file for 1 hole radiative transitions
+"""
+#Raw data read from the 2 hole ionization energies file
+ionizationssat = []
+"""
+Variable to hold the data from the ionization energies file for 2 hole radiative transitions
+"""
+
 #Raw data read from the shake wheights file to be simulated
 shakeweights = []
 """
@@ -106,16 +117,6 @@ Variable to hold the shake weights read from file
 label1 = []
 """
 Variable to hold the shake labels read from file
-"""
-#Raw data read from the orbital binding energies file to be simulated
-bindings = []
-"""
-Variable to hold the orbital binding energies read from file
-"""
-#Variable to store the labels read from the orbital binding energies file
-label2 = []
-"""
-Variable to hold the orbital labels read from file
 """
 
 

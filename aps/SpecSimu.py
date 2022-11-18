@@ -14,7 +14,7 @@ import os
 import data.variables as generalVars
 
 #File IO Imports
-from utils.fileIO import readRates, readShakeWeights, readBindingEnergies
+from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies
 from utils.fileIO import searchChargeStates, readChargeStates, readIonPop
 
 #Function Imports
@@ -89,13 +89,21 @@ def simulateSpectra(dir_path, element, parent):
     # Read the shake weights file
     generalVars.shakeweights, generalVars.label1 = readShakeWeights(shakeweights_file)
 
-    # Path to the orital binding energies file for this element
-    binding_file = dir_path / str(z) / (str(z) + '-groundbinding.out')
+    # Path to the 1 hole ionization energies energies file for this element
+    ioniz_file = dir_path / str(z) / (str(z) + '-grounddiagenerg.out')
     """
-    Variable with the full path to the orbital binding energies file of this element
+    Variable with the full path to the 1 hole ionization energies file of this element
     """
-    # Read the orbital binding energies file
-    generalVars.bindings, generalVars.label2 = readBindingEnergies(binding_file)
+    # Read the ionization energies energies file
+    generalVars.ionizationsrad = readIonizationEnergies(ioniz_file)
+    
+    # Path to the 2 hole ionization energies energies file for this element
+    ioniz_file = dir_path / str(z) / (str(z) + '-groundsatenerg.out')
+    """
+    Variable with the full path to the 1 hole ionization energies file of this element
+    """
+    # Read the ionization energies energies file
+    generalVars.ionizationssat = readIonizationEnergies(ioniz_file)
     
     # Variable to active or deactivate the charge state simulation in the interface menu
     CS_exists = False

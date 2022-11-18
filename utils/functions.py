@@ -546,19 +546,25 @@ def calculateResidues(exp_x, exp_y, exp_sigma, xfinal, enoffset, normalization_v
 #                                                           #
 # --------------------------------------------------------- #
 
-def get_binding(low_level):
+def get_binding(line):
     """
-    Function to find the orbital binding energy from the level label
+    Function to find the ionization energy from the level label
         
         Args:
-            low_level: low level label that needs to be ionized for the transition to be observed
-        
+            line: the data line of the transition that we want to find the ionization energy
+
         Returns:
-            binding: the binding energy of the corresponding orbital
+            binding: the ionization energy of the corresponding level
     """
-    for i, lab in enumerate(generalVars.label2):
-        if lab == low_level:
-            return generalVars.bindings[i]
+    if len(line[1]) == 2:
+        for level in generalVars.ionizationsrad:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
+                return float(line[5])
+    else:
+        for level in generalVars.ionizationssat:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
+                return float(line[5])
+
 
 # Update the radiative and satellite rates for the selected transition
 def updateRadTransitionVals(transition, num, beam):

@@ -507,32 +507,28 @@ def readShakeWeights(shakeweights_file):
         messagebox.showwarning("Error", "Shake Weigths File is not Avaliable")
 
 
-def readBindingEnergies(binding_file):
+def readIonizationEnergies(ioniz_file):
     """
-    Function to read the orbital binding energies file
+    Function to read the ionization energies file
         
         Args:
-            binding_file: file path of the orbital binding energies file
+            ioniz_file: file path of the ionization energies file
             
         Returns:
-            bindings: list with the binding energies in float
-            label1: list with the orbital labels
+            ionizations: list with the ionization energies in float
     """
     try:
-        with open(binding_file, 'r') as bindings_f:
+        with open(ioniz_file, 'r') as ioniz:
             # Write the lines into a list
-            bindings_m = [x.strip('\n').split(',') for x in bindings_f.readlines()]
-            bindings = []
-            label1 = []
+            ionizations = [x.strip('\n').split() for x in ioniz.readlines()]
+            # Remove empty strings from possible uneven formating
+            ionizations = list(filter(None, ionizations))
+            # Delete the header rows
+            del ionizations[0:2]
             
-            # Loop the read values and store them in two lists
-            for i in range(len(bindings_m)):
-                bindings.append(float(bindings_m[i][1]))
-                label1.append(bindings_m[i][0])
-            
-            return bindings, label1
+            return ionizations
     except FileNotFoundError:
-        messagebox.showwarning("Error", "Orbital Binding Energies File is not Avaliable")
+        messagebox.showwarning("Error", "Ionization Energies File is not Avaliable: " + ioniz_file)
 
 
 # ----------------------------------------------------- #
