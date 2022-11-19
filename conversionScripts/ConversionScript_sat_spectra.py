@@ -27,13 +27,7 @@ TotWidth = []
 #shiftType = "rel"
 
 def main():
-    if len(sys.argv) != 2:
-        print("Expected shift value in input... terminating.")
-        return
-    
-    shift = sys.argv[1]
-    
-    with open("satellite_raw/Fe_" + shift + "_spectrum_sat.txt", "r") as lines:
+    with open("Cu_spectrum_sat.txt", "r") as lines:
         header = lines.readline().strip() #header line
         #print(header.split("\t"))
         for i, line in enumerate(lines):
@@ -160,8 +154,8 @@ def main():
                 Shellf[record] = "M4M5"
 
 
-    with open("satellite_converted/26-satinty_" + shift + ".out", "w") as output:
-        output.write("# Atomic number Z= 26  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
+    with open("29-satinty.out", "w") as output:
+        output.write("# Atomic number Z= 29  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
         output.write("# Number Shelli\t  2Ji\t\t  Eigi ---> \t Shellf\t  2Jf\t\t  Eigf\t\tEnergy(eV)\t\t\tBranchingRatio\t\t\t LevelRadYield\t\t Intensity(eV)\t\t\t Weight(%)\t\t  RadWidth(eV)\t\t  AugWidth(eV)\t\t  TotWidth(eV)\n")
         
         for i in range(len(Shelli)):

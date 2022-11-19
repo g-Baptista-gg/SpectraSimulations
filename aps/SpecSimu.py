@@ -90,7 +90,7 @@ def simulateSpectra(dir_path, element, parent):
     generalVars.shakeweights, generalVars.label1 = readShakeWeights(shakeweights_file)
 
     # Path to the 1 hole ionization energies energies file for this element
-    ioniz_file = dir_path / str(z) / (str(z) + '-grounddiagenerg.out')
+    ioniz_file = dir_path / str(z) / (str(z) + '-grounddiagenergy.out')
     """
     Variable with the full path to the 1 hole ionization energies file of this element
     """
@@ -98,7 +98,7 @@ def simulateSpectra(dir_path, element, parent):
     generalVars.ionizationsrad = readIonizationEnergies(ioniz_file)
     
     # Path to the 2 hole ionization energies energies file for this element
-    ioniz_file = dir_path / str(z) / (str(z) + '-groundsatenerg.out')
+    ioniz_file = dir_path / str(z) / (str(z) + '-groundsatenergy.out')
     """
     Variable with the full path to the 1 hole ionization energies file of this element
     """

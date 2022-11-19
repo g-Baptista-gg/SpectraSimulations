@@ -559,11 +559,15 @@ def get_binding(line):
     if len(line[1]) == 2:
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
-                return float(line[5])
+                return float(level[5])
     else:
         for level in generalVars.ionizationssat:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
-                return float(line[5])
+                return float(level[5])
+    
+    messagebox.showwarning("No Ionization energy was found", "Ionization energy for the low level shell " + line[1] + " with the quantum numbers of 2j = " + line[2] + ", Eigv = " + line[3] + " was not found.")
+    
+    return 0.0
 
 
 # Update the radiative and satellite rates for the selected transition
@@ -591,13 +595,9 @@ def updateRadTransitionVals(transition, num, beam):
     
     # If a beam energy grater than 0 eV has been inputed in the interface then we want to filter the transitions accordingly
     if beam > 0:
-        if beam + get_binding(low_level) >= 0:
-            # Filter the radiative and satellite rates data for the selected transition
-            diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
-            sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0]
-        else:
-            diag_stick_val = []
-            sat_stick_val = []
+        # Filter the radiative and satellite rates data for the selected transition
+        diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and beam - get_binding(line) >= 0]
+        sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and beam - get_binding(line) >= 0]
     else:
         # Filter the radiative and satellite rates data for the selected transition
         diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
@@ -621,23 +621,17 @@ def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam):
             sat_stick_val_ind: list with the satellite rates for the selected diagram transition and shake level
     """
     if beam > 0:
-        if beam + get_binding(low_level) + get_binding(key) >= 0:
-            # Filter the satellite rates data for the combinations of selected levels
-            sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
-            sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and key != high_level]
-            sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
-            sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and key != high_level]
-        else:
-            sat_stick_val_ind1 = []
-            sat_stick_val_ind2 = []
-            sat_stick_val_ind3 = []
-            sat_stick_val_ind4 = []
+        # Filter the satellite rates data for the combinations of selected levels
+        sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5] and beam - get_binding(line) >= 0]
+        sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and beam - get_binding(line) >= 0]
+        sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5] and beam - get_binding(line) >= 0]
+        sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and beam - get_binding(line) >= 0]
     else:
         # Filter the satellite rates data for the combinations of selected levels
         sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
-        sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and key != high_level]
+        sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5]]
         sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
-        sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and key != high_level]
+        sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5]]
     
     sat_stick_val_ind = sat_stick_val_ind1 + sat_stick_val_ind2 + sat_stick_val_ind3 + sat_stick_val_ind4
     
@@ -665,11 +659,8 @@ def updateAugTransitionVals(transition, num, beam):
     auger_level = the_aug_dictionary[transition]["auger_level"]
 
     if beam > 0:
-        if beam + get_binding(low_level) >= 0:
-            # Filter the auger rates data for the selected transition
-            aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
-        else:
-            aug_stick_val = []
+        # Filter the auger rates data for the selected transition
+        aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and beam - get_binding(line) >= 0]
     else:
         # Filter the auger rates data for the selected transition
         aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
@@ -702,20 +693,16 @@ def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam):
     high_level = the_dictionary[transition]["high_level"]
     
     if beam > 0:
-        if beam + get_binding(low_level) >= 0:
-            # Filter the radiative and satellite rates data for the selected transition and charge state
-            if not ncs:
-                diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]  # Cada vez que o for corre, lê o ficheiro de uma transição
-            else:
-                diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
-
-            if not ncs:
-                sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs]
-            else:
-                sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs]
+        # Filter the radiative and satellite rates data for the selected transition and charge state
+        if not ncs:
+            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs and beam - get_binding(line) >= 0]  # Cada vez que o for corre, lê o ficheiro de uma transição
         else:
-            diag_stick_val = []
-            sat_stick_val = []
+            diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs and beam - get_binding(line) >= 0]
+
+        if not ncs:
+            sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs and beam - get_binding(line) >= 0]
+        else:
+            sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs and beam - get_binding(line) >= 0]
     else:
         # Filter the radiative and satellite rates data for the selected transition and charge state
         if not ncs:
@@ -754,14 +741,11 @@ def updateAugCSTransitionsVals(transition, num, ncs, cs, beam):
     auger_level = the_aug_dictionary[transition]["auger_level"]
     
     if beam > 0:
-        if beam + get_binding(low_level) >= 0:
-            # Filter the auger rates data for the selected transition and charge state
-            if not ncs:
-                aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
-            else:
-                aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
+        # Filter the auger rates data for the selected transition and charge state
+        if not ncs:
+            aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs and beam - get_binding(line) >= 0]
         else:
-            aug_stick_val = []
+            aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs and beam - get_binding(line) >= 0]
     else:
         # Filter the auger rates data for the selected transition and charge state
         if not ncs:
@@ -1359,15 +1343,20 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam):
         sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val, beam)
         
         # Check if there is at least one satellite transition
-        if len(sat_sim_val_ind) > 1:
+        if len(sat_sim_val_ind) > 0:
             # Extract the energies, intensities and widths of the transition (different j and eigv)
             x1s = [float(row[8]) for row in sat_sim_val_ind]
             y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
             w1s = [float(row[15]) for row in sat_sim_val_ind]
             # Store the values in a list containing all the transitions to simulate
+            
             xs_inds.append(x1s)
             ys_inds.append(y1s)
             ws_inds.append(w1s)
+        else:
+            xs_inds.append([])
+            ys_inds.append([])
+            ws_inds.append([])
     
     return xs_inds, ys_inds, ws_inds
 
@@ -1443,30 +1432,56 @@ def calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points
         Returns:
             Nothing. The xfinal is stored in the variables module to be used globaly while plotting.
     """
+    diag = True
+    sats = True
+    
     try:
-        if sat == 'Diagram':
+        if 'Diagram' in sat or 'Auger' in sat:
             # Get the bounds of the energies and widths to plot
-            deltaE, max_value, min_value = getBounds(x, w)
-
-        elif sat == 'Satellites' or sat == 'Diagram + Satellites':
-            # Get the bounds of the energies and widths to plot
-            deltaE, max_value, min_value = getSatBounds(xs, ws)
+            deltaEdiag, max_valuediag, min_valuediag = getBounds(x, w)
+    except ValueError:
+        diag = False
         
-        elif sat == 'Auger':
+        if not bad_selection:
+            messagebox.showerror("No Diagram Transition", "No transition was chosen")
+        else:
+            messagebox.showerror("Wrong Diagram Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+        
+    try:
+        if 'Satellites' in sat:
             # Get the bounds of the energies and widths to plot
-            deltaE, max_value, min_value = getBounds(x, w)
+            deltaEsat, max_valuesat, min_valuesat = getSatBounds(xs, ws)
+    except ValueError:
+        sats = False
+        
+        if not bad_selection:
+            messagebox.showerror("No Satellite Transition", "No transition was chosen")
+        else:
+            messagebox.showerror("Wrong Satellite Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+    
+    if diag and sats:
+        deltaE = max(deltaEdiag, deltaEsat)
+        max_value = max(max_valuediag, max_valuesat)
+        min_value = min(min_valuediag, min_valuesat)
         
         # Update the bounds considering the resolution and energy offset chosen
         array_input_max, array_input_min = updateMaxMinVals(x_mx, x_mn, deltaE, max_value, min_value, res, enoffset)
         
         # Calculate the grid of x values to use in the simulation
         generalVars.xfinal = np.linspace(array_input_min, array_input_max, num=num_of_points)
-    except ValueError:
+    elif diag:
+        deltaE = deltaEdiag
+        max_value = max_valuediag
+        min_value = min_valuediag
+        
+        # Update the bounds considering the resolution and energy offset chosen
+        array_input_max, array_input_min = updateMaxMinVals(x_mx, x_mn, deltaE, max_value, min_value, res, enoffset)
+        
+        # Calculate the grid of x values to use in the simulation
+        generalVars.xfinal = np.linspace(array_input_min, array_input_max, num=num_of_points)
+    else:
         generalVars.xfinal = np.zeros(num_of_points)
-        if not bad_selection:
-            messagebox.showerror("No Transition", "No transition was chosen")
-        else:
-            messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
+    
 
 
 def initialize_expElements(f, load, enoffset, num_of_points, x_mx, x_mn, normalize):

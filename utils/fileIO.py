@@ -476,7 +476,7 @@ def readRates(rates_file):
             
             return linerates
     except FileNotFoundError:
-        messagebox.showwarning("Error", "Rates File is not Avaliable: " + rates_file)
+        messagebox.showwarning("Error", "Rates File is not Avaliable: " + str(rates_file))
 
 # Read the shake weights file and return a list with the data and a list with the labels
 def readShakeWeights(shakeweights_file):
@@ -504,7 +504,7 @@ def readShakeWeights(shakeweights_file):
             
             return shakeweights, label1
     except FileNotFoundError:
-        messagebox.showwarning("Error", "Shake Weigths File is not Avaliable")
+        messagebox.showwarning("Error", "Shake Weigths File is not Avaliable: " + str(shakeweights_file))
 
 
 def readIonizationEnergies(ioniz_file):
@@ -528,7 +528,7 @@ def readIonizationEnergies(ioniz_file):
             
             return ionizations
     except FileNotFoundError:
-        messagebox.showwarning("Error", "Ionization Energies File is not Avaliable: " + ioniz_file)
+        messagebox.showwarning("Error", "Ionization Energies File is not Avaliable: " + str(ioniz_file))
 
 
 # ----------------------------------------------------- #
