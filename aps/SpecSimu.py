@@ -14,7 +14,7 @@ import os
 import data.variables as generalVars
 
 #File IO Imports
-from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies
+from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies, readDiagramWidths, readSatelliteWidths
 from utils.fileIO import searchChargeStates, readChargeStates, readIonPop
 
 #Function Imports
@@ -104,6 +104,22 @@ def simulateSpectra(dir_path, element, parent):
     """
     # Read the ionization energies energies file
     generalVars.ionizationssat = readIonizationEnergies(ioniz_file)
+    
+    # Path to the diagram rates with partial widths file for this element
+    radrateswidths_file = dir_path / str(z) / (str(z) + '-radrate.out')
+    """
+    Variable with the full path to the diagram rates with partial widths file for this element
+    """
+    # Read the diagram rates file
+    generalVars.diagramwidths = readDiagramWidths(radrateswidths_file)
+    
+    # Path to the satellite rates with partial widths file for this element
+    satrateswidths_file = dir_path / str(z) / (str(z) + '-satrate.out')
+    """
+    Variable with the full path to the satellite rates with partial widths file for this element
+    """
+    # Read the satellite rates file
+    generalVars.satellitewidths = readSatelliteWidths(satrateswidths_file)
     
     # Variable to active or deactivate the charge state simulation in the interface menu
     CS_exists = False

@@ -506,7 +506,7 @@ def readShakeWeights(shakeweights_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Shake Weigths File is not Avaliable: " + str(shakeweights_file))
 
-
+# Read the ionization energies file and return a list with the data and a list with the labels
 def readIonizationEnergies(ioniz_file):
     """
     Function to read the ionization energies file
@@ -515,7 +515,7 @@ def readIonizationEnergies(ioniz_file):
             ioniz_file: file path of the ionization energies file
             
         Returns:
-            ionizations: list with the ionization energies in float
+            ionizations: list with the ionization energies still in string format
     """
     try:
         with open(ioniz_file, 'r') as ioniz:
@@ -530,6 +530,53 @@ def readIonizationEnergies(ioniz_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Ionization Energies File is not Avaliable: " + str(ioniz_file))
 
+# Read the diagram widths file and return a list with the data and a list with the labels
+def readDiagramWidths(diagramwidths):
+    """
+    Function to read the diagram widths file
+        
+        Args:
+            diagramwidths: file path of the diagram widths file
+            
+        Returns:
+            widths: list with the diagram widths still in string format
+    """
+    try:
+        with open(diagramwidths, 'r') as diag:
+            # Write the lines into a list
+            widths = [x.strip('\n').split() for x in diag.readlines()]
+            # Remove empty strings from possible uneven formating
+            widths = list(filter(None, widths))
+            # Delete the header rows
+            del widths[0:2]
+            
+            return widths
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "Diagram Widths File is not Avaliable: " + str(diagramwidths))
+
+# Read the satellite widths file and return a list with the data and a list with the labels
+def readSatelliteWidths(satellitewidths):
+    """
+    Function to read the diagram widths file
+        
+        Args:
+            satellitewidths: file path of the satellite widths file
+            
+        Returns:
+            widths: list with the satellite widths still in string format
+    """
+    try:
+        with open(satellitewidths, 'r') as sats:
+            # Write the lines into a list
+            widths = [x.strip('\n').split() for x in sats.readlines()]
+            # Remove empty strings from possible uneven formating
+            widths = list(filter(None, widths))
+            # Delete the header rows
+            del widths[0:2]
+            
+            return widths
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "Satellite Widths File is not Avaliable: " + str(satellitewidths))
 
 # ----------------------------------------------------- #
 #                                                       #

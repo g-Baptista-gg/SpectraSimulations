@@ -107,6 +107,16 @@ ionizationssat = []
 """
 Variable to hold the data from the ionization energies file for 2 hole radiative transitions
 """
+#Raw data read from the diagram rates file
+diagramwidths = []
+"""
+Variable with the full path to the diagram rates with partial widths file for this element
+"""
+#Raw data read from the satellite rates file
+satellitewidths = []
+"""
+Variable with the full path to the satellite rates with partial widths file for this element
+"""
 
 #Raw data read from the shake wheights file to be simulated
 shakeweights = []

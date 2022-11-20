@@ -546,6 +546,7 @@ def calculateResidues(exp_x, exp_y, exp_sigma, xfinal, enoffset, normalization_v
 #                                                           #
 # --------------------------------------------------------- #
 
+# Match the level in line and return the energy necessary to form it from the ground state of the simulated element
 def get_binding(line):
     """
     Function to find the ionization energy from the level label
@@ -1618,20 +1619,26 @@ def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
     """
     
     if 'Diagram' in sat:
+        totalDiagInt = []
         for index, key in enumerate(the_dictionary):
             if the_dictionary[key]["selected_state"]:
+                totalDiagInt.append(sum(generalVars.yfinal[index]))
                 # Plot the selected transition
                 graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
                 graph_area.legend()
+        print(sum(totalDiagInt))
     if 'Satellites' in sat:
+        totalSatInt = []
         for index, key in enumerate(the_dictionary):
             if the_dictionary[key]["selected_state"]:
                 for l, m in enumerate(generalVars.yfinals[index]):
                     # Dont plot the satellites that have a max y value of 0
                     if max(m) != 0:
+                        totalSatInt.append(sum(m))
                         # Plot the selected transition
                         graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
                         graph_area.legend()
+        print(sum(totalSatInt))
     if sat == 'Auger':
         for index, key in enumerate(the_aug_dictionary):
             if the_aug_dictionary[key]["selected_state"]:

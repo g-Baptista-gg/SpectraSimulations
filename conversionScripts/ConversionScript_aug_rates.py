@@ -22,13 +22,7 @@ TotRateIS = []
 BranchingRatio = []
 
 def main():
-    if len(sys.argv) != 2:
-        print("Expected charge state in input... terminating.")
-        return
-    
-    chargeState = sys.argv[1]
-    
-    with open("rates_raw/" + chargeState + "/Fe_" + chargeState + "_rates_auger.txt", "r") as lines:
+    with open("Cu_rates_auger.txt", "r") as lines:
         header = lines.readline().strip() #header line
         #print(header.split("\t"))
         for i, line in enumerate(lines):
@@ -144,8 +138,8 @@ def main():
                 Shellf[record] = "M4M5"
         
 
-    with open("rates_converted/" + chargeState + "/26-augrate_" + chargeState + ".out", "w") as output:
-        output.write("# Atomic number Z= 26  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
+    with open("rates_converted/" + chargeState + "/29-augrate_" + chargeState + ".out", "w") as output:
+        output.write("# Atomic number Z= 29  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
         output.write("# Register Shell IS\t   Configuration IS \t\t\t\t2JJ IS \t\t Eigi \t  Higher Config IS \t\t\t\t\t percentage IS ---> \t Shell FS \t  Configuration FS \t\t\t\t\t2JJ FS \t\t Eigf \t  Higher Config FS \t\t\t\t  percentage FS \t\tEnergy(eV)\t\t\t rate(s-1)\t\t\ttotal rate from IS\t\t\tBranchingRatio\n")
         
         for i in range(len(Shelli)):
