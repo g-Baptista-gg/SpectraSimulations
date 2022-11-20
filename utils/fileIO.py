@@ -54,7 +54,7 @@ def file_namer(simulation_or_fit, fit_time, extension):
     return file_name
 
 # Function to save the simulation data into an excel file
-def write_to_xls(type_t, enoffset, beam_ener, y0, residues_graph):
+def write_to_xls(type_t, enoffset, beam_ener, beam_FWHM, y0, residues_graph):
     """
     Function to save the current simulation data into an excel file
         
@@ -62,6 +62,7 @@ def write_to_xls(type_t, enoffset, beam_ener, y0, residues_graph):
             type_t: type of transitions simulated (diagram, satellite, diagram + satellite, auger)
             enoffset: energy offset chosen in the simulation
             beam_ener: beam energy chosen in the simulation
+            beam_FWHM: beam energy FWHM chosen in the simulation
             y0: intensity offset chosen in the simulation
             residues_graph: residues graph object from where we will extract the calculated residues
             
@@ -302,6 +303,8 @@ def write_to_xls(type_t, enoffset, beam_ener, y0, residues_graph):
         if beam_ener != 0:
             matrix[1][transition_columns + 4] = 'Beam Energy (eV)'
             matrix[2][transition_columns + 4] = beam_ener
+            matrix[3][transition_columns + 4] = 'Beam Energy FWHM (eV)'
+            matrix[4][transition_columns + 4] = beam_FWHM
 
         transition_columns += 5
     

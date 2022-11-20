@@ -28,6 +28,7 @@ from utils.fileIO import file_namer, loadEfficiency
 import utils.interface as guiVars
 
 from scipy.special import wofz
+import scipy.integrate as integrate
 
 element_name = None
 """
@@ -546,33 +547,41 @@ def calculateResidues(exp_x, exp_y, exp_sigma, xfinal, enoffset, normalization_v
 #                                                           #
 # --------------------------------------------------------- #
 
-# Match the level in line and return the energy necessary to form it from the ground state of the simulated element
-def get_binding(line):
+# Calculate the overlap between the beam energy profile and the energy necessary to reach the level
+def get_overlap(line, beam, FWHM):
     """
-    Function to find the ionization energy from the level label
+    Function to calculate the levels overlap with the beam energy profile
         
         Args:
             line: the data line of the transition that we want to find the ionization energy
+            beam: the beam energy introduced in the interface
+            FWHM: the beam energy FWHM introduced in the interface
 
         Returns:
-            binding: the ionization energy of the corresponding level
+            overlap: the overlap
     """
     if len(line[1]) == 2:
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
-                return float(level[5])
+                formationEnergy = float(level[5])
     else:
         for level in generalVars.ionizationssat:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
-                return float(level[5])
+                formationEnergy = float(level[5])
     
-    messagebox.showwarning("No Ionization energy was found", "Ionization energy for the low level shell " + line[1] + " with the quantum numbers of 2j = " + line[2] + ", Eigv = " + line[3] + " was not found.")
+    def integrand(x):
+        return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
     
-    return 0.0
-
+    if formationEnergy > (beam + 5 * FWHM):
+        return 0.0
+    elif formationEnergy > (beam - 5 * FWHM):
+        overlap = integrate.quad(integrand, formationEnergy, np.inf)
+        return overlap[0]
+    else:
+        return 1.0
 
 # Update the radiative and satellite rates for the selected transition
-def updateRadTransitionVals(transition, num, beam):
+def updateRadTransitionVals(transition, num, beam, FWHM):
     """
     Function to update the radiative and satellite rates for the selected transition
         
@@ -597,8 +606,8 @@ def updateRadTransitionVals(transition, num, beam):
     # If a beam energy grater than 0 eV has been inputed in the interface then we want to filter the transitions accordingly
     if beam > 0:
         # Filter the radiative and satellite rates data for the selected transition
-        diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and beam - get_binding(line) >= 0]
-        sat_stick_val = [line for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and beam - get_binding(line) >= 0]
+        diag_stick_val = [line + [get_overlap(line, beam, FWHM)] for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
+        sat_stick_val = [line + [get_overlap(line, beam, FWHM)] for line in generalVars.linesatellites if low_level in line[1] and high_level in line[5] and float(line[8]) != 0]
     else:
         # Filter the radiative and satellite rates data for the selected transition
         diag_stick_val = [line for line in generalVars.lineradrates if line[1] in low_level and line[5] == high_level and float(line[8]) != 0]
@@ -607,7 +616,7 @@ def updateRadTransitionVals(transition, num, beam):
     return num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val
 
 # Update the satellite rates for the selected transition
-def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam):
+def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam, FWHM):
     """
     Function to update the satellite rates for the selected transition and shake level
         
@@ -623,10 +632,10 @@ def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam):
     """
     if beam > 0:
         # Filter the satellite rates data for the combinations of selected levels
-        sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5] and beam - get_binding(line) >= 0]
-        sat_stick_val_ind2 = [line for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5] and beam - get_binding(line) >= 0]
-        sat_stick_val_ind3 = [line for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5] and beam - get_binding(line) >= 0]
-        sat_stick_val_ind4 = [line for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5] and beam - get_binding(line) >= 0]
+        sat_stick_val_ind1 = [line + [get_overlap(line, beam, FWHM)] for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
+        sat_stick_val_ind2 = [line + [get_overlap(line, beam, FWHM)] for line in sat_stick_val if low_level + key in line[1] and high_level + key in line[5]]
+        sat_stick_val_ind3 = [line + [get_overlap(line, beam, FWHM)] for line in sat_stick_val if key + low_level in line[1] and key + high_level in line[5]]
+        sat_stick_val_ind4 = [line + [get_overlap(line, beam, FWHM)] for line in sat_stick_val if key + low_level in line[1] and high_level + key in line[5]]
     else:
         # Filter the satellite rates data for the combinations of selected levels
         sat_stick_val_ind1 = [line for line in sat_stick_val if low_level + key in line[1] and key + high_level in line[5]]
@@ -639,7 +648,7 @@ def updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam):
     return sat_stick_val_ind
 
 # Update the auger rates for the selected transition
-def updateAugTransitionVals(transition, num, beam):
+def updateAugTransitionVals(transition, num, beam, FWHM):
     """
     Function to update the auger rates for the selected transition
         
@@ -661,7 +670,7 @@ def updateAugTransitionVals(transition, num, beam):
 
     if beam > 0:
         # Filter the auger rates data for the selected transition
-        aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and beam - get_binding(line) >= 0]
+        aug_stick_val = [line + [get_overlap(line, beam, FWHM)] for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
     else:
         # Filter the auger rates data for the selected transition
         aug_stick_val = [line for line in generalVars.lineauger if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0]
@@ -669,7 +678,7 @@ def updateAugTransitionVals(transition, num, beam):
     return num_of_transitions, aug_stick_val
 
 # Update the radiative and satellite rates for the selected transition and charge state
-def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam):
+def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam, FWHM):
     """
     Function to update the radiative and satellite rates for the selected transition and charge state
         
@@ -696,18 +705,18 @@ def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam):
     if beam > 0:
         # Filter the radiative and satellite rates data for the selected transition and charge state
         if not ncs:
-            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs and beam - get_binding(line) >= 0]  # Cada vez que o for corre, lê o ficheiro de uma transição
+            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]
         else:
-            diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs and beam - get_binding(line) >= 0]
+            diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
 
         if not ncs:
-            sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs and beam - get_binding(line) >= 0]
+            sat_stick_val = [line + [generalVars.PCS_radMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, linesat in enumerate(generalVars.linesatellites_PCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_PCS[i] == cs]
         else:
-            sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs and beam - get_binding(line) >= 0]
+            sat_stick_val = [line + [generalVars.NCS_radMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, linesat in enumerate(generalVars.linesatellites_NCS) for line in linesat if low_level in line[1] and high_level in line[5] and float(line[8]) != 0 and generalVars.sat_NCS[i] == cs]
     else:
         # Filter the radiative and satellite rates data for the selected transition and charge state
         if not ncs:
-            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]  # Cada vez que o for corre, lê o ficheiro de uma transição
+            diag_stick_val = [line + [generalVars.PCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_PCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_PCS[i] == cs]
         else:
             diag_stick_val = [line + [generalVars.NCS_radMixValues[i].get()] for i, linerad in enumerate(generalVars.lineradrates_NCS) for line in linerad if line[1] in low_level and line[5] == high_level and float(line[8]) != 0 and generalVars.rad_NCS[i] == cs]
 
@@ -719,7 +728,7 @@ def updateRadCSTrantitionsVals(transition, num, ncs, cs, beam):
     return num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val
 
 # Update the auger rates for the selected transition and charge state
-def updateAugCSTransitionsVals(transition, num, ncs, cs, beam):
+def updateAugCSTransitionsVals(transition, num, ncs, cs, beam, FWHM):
     """
     Function to update the auger rates for the selected transition and charge state
         
@@ -744,9 +753,9 @@ def updateAugCSTransitionsVals(transition, num, ncs, cs, beam):
     if beam > 0:
         # Filter the auger rates data for the selected transition and charge state
         if not ncs:
-            aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs and beam - get_binding(line) >= 0]
+            aug_stick_val = [line + [generalVars.PCS_augMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, lineaug in enumerate(generalVars.lineaugrates_PCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
         else:
-            aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get()] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs and beam - get_binding(line) >= 0]
+            aug_stick_val = [line + [generalVars.NCS_augMixValues[i].get(), get_overlap(line, beam, FWHM)] for i, lineaug in enumerate(generalVars.lineaugrates_NCS) for line in lineaug if low_level in line[1] and high_level in line[5][:2] and auger_level in line[5][2:4] and float(line[8]) != 0 and generalVars.aug_PCS[i] == cs]
     else:
         # Filter the auger rates data for the selected transition and charge state
         if not ncs:
@@ -981,7 +990,7 @@ def stem_ploter(a, transition_values, transition, spec_type, ind, key):
     # Calculate the y's weighted with the shake weights depending on the spectrum type and plot the sticks
     # In the case of charge state simulation the y's are also weighted by the selected mixture percentages
     if spec_type == 'Diagram' or spec_type == 'Auger':
-        y = [float(row[11]) * (1 - 0.01 * sum(generalVars.shakeweights)) for row in transition_values]
+        y = [float(row[11]) * (1 - 0.01 * sum(generalVars.shakeweights)) * row[-1] for row in transition_values]
         """
         Intensity values for the selected diagram or auger transition
         """
@@ -990,7 +999,7 @@ def stem_ploter(a, transition_values, transition, spec_type, ind, key):
         a.stem(x, y, markerfmt=' ', linefmt=str(col2[np.random.randint(0, 7)][0]), label=str(transition), use_line_collection=True)
         a.legend(loc='best', numpoints=1)
     elif spec_type == 'Satellites':
-        sy_points = [float(float(row[11]) * 0.01 * generalVars.shakeweights[ind]) for row in transition_values]
+        sy_points = [float(float(row[11]) * 0.01 * generalVars.shakeweights[ind]) * row[-1] for row in transition_values]
         """
         Intensity values for the selected satellite transition
         """
@@ -999,7 +1008,7 @@ def stem_ploter(a, transition_values, transition, spec_type, ind, key):
         a.stem(x, sy_points, markerfmt=' ', linefmt=str(col2[np.random.randint(0, 7)][0]), label=transition + ' - ' + labeldict[key], use_line_collection=True)  # Plot a stemplot
         a.legend(loc='best', numpoints=1)
     elif spec_type == 'Diagram_CS' or spec_type == 'Auger_CS':
-        y = [float(row[11]) * (1 - 0.01 * sum(generalVars.shakeweights)) * float(row[-1]) for row in transition_values]
+        y = [float(row[11]) * (1 - 0.01 * sum(generalVars.shakeweights)) * float(row[-2]) * row[-1] for row in transition_values]
         """
         Intensity values for the selected diagram or auger transition weight by the charge state mix value
         """
@@ -1008,7 +1017,7 @@ def stem_ploter(a, transition_values, transition, spec_type, ind, key):
         a.stem(x, y, markerfmt=' ', linefmt=str(col2[np.random.randint(0, 7)][0]), label=str(transition), use_line_collection=True)
         a.legend(loc='best', numpoints=1)
     elif spec_type == 'Satellites_CS':
-        sy_points = [float(float(row[11]) * 0.01 * generalVars.shakeweights[ind] * float(row[-1])) for row in transition_values]
+        sy_points = [float(float(row[11]) * 0.01 * generalVars.shakeweights[ind] * float(row[-2])) * row[-1] for row in transition_values]
         """
         Intensity values for the selected satellite transition weight by the charge state mix value
         """
@@ -1071,7 +1080,7 @@ def stick_diagram(graph_area, diag_stick_val, transition, bad_selection, cs = ''
     return bad
 
 
-def stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs = ''):
+def stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, FWHM, cs = ''):
     """
     Function to check and send the data to the stick plotter function for sattelite transitions.
     
@@ -1083,6 +1092,7 @@ def stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_
             high_level: high level of the selected transition
             bad_selection: total number of transitions that had no data
             beam: beam energy user value from the interface
+            FWHM: beam energy FWHM user value from the interface
             cs: charge state value for when simulating various charge states
         
         Returns:
@@ -1104,7 +1114,7 @@ def stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_
     # Loop all shake levels read in the shake weights file
     for ind, key in enumerate(generalVars.label1):
         # Filter the specific combination of radiative transition and shake level (key) to simulate
-        sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam)
+        sat_stick_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_stick_val, beam, FWHM)
         
         # Check for at least one satellite transition
         if len(sat_stick_val_ind) > 1:
@@ -1171,6 +1181,7 @@ def make_stick(sim, graph_area):
     
     sat = guiVars.satelite_var.get()
     beam = guiVars.excitation_energy.get()
+    FWHM = guiVars.excitation_energyFWHM.get()
     
     # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
     if sat != 'Auger':
@@ -1179,13 +1190,13 @@ def make_stick(sim, graph_area):
             # If the transition was selected
             if the_dictionary[transition]["selected_state"]:
                 # Filter the radiative and satellite rates corresponding to this transition
-                num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadTransitionVals(transition, num_of_transitions, beam)
+                num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadTransitionVals(transition, num_of_transitions, beam, FWHM)
                 
                 # -------------------------------------------------------------------------------------------
                 if 'Diagram' in sat:
                     bad_selection = stick_diagram(graph_area, diag_stick_val, transition, bad_selection)
                 if 'Satellites' in sat:
-                    bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam)
+                    bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, FWHM)
             
     else:
         # Loop possible auger transitions
@@ -1193,7 +1204,7 @@ def make_stick(sim, graph_area):
             # If the transition is selected
             if the_aug_dictionary[transition]["selected_state"]:
                 # Filter the auger rates for this transition
-                num_of_transitions, aug_stick_val = updateAugTransitionVals(transition, num_of_transitions, beam)
+                num_of_transitions, aug_stick_val = updateAugTransitionVals(transition, num_of_transitions, beam, FWHM)
                 
                 bad_selection = stick_auger(graph_area, aug_stick_val, transition, bad_selection)
     
@@ -1225,6 +1236,7 @@ def make_Mstick(sim, graph_area):
     
     sat = guiVars.satelite_var.get()
     beam = guiVars.excitation_energy.get()
+    FWHM = guiVars.excitation_energyFWHM.get()
     
     # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
     if sat != 'Auger':
@@ -1252,12 +1264,12 @@ def make_Mstick(sim, graph_area):
                     # If the transition is selected
                     if the_dictionary[transition]["selected_state"]:
                         # Filter the radiative and satellite rates for this transition and charge state
-                        num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadCSTrantitionsVals(transition, num_of_transitions, ncs, cs, beam)
+                        num_of_transitions, low_level, high_level, diag_stick_val, sat_stick_val = updateRadCSTrantitionsVals(transition, num_of_transitions, ncs, cs, beam, FWHM)
                         
                         if 'Diagram' in sat:
                             bad_selection = stick_diagram(graph_area, diag_stick_val, transition, bad_selection, cs)
                         if 'Satellites' in sat:
-                            bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, cs)
+                            bad_selection = stick_satellite(sim, graph_area, sat_stick_val, transition, low_level, high_level, bad_selection, beam, FWHM, cs)
                     
     else:
         # Initialize the charge states we have to loop through
@@ -1284,7 +1296,7 @@ def make_Mstick(sim, graph_area):
                     # If the transition is selected
                     if the_aug_dictionary[transition]["selected_state"]:
                         # Filter the auger rates for this transition and charge state
-                        num_of_transitions, aug_stick_val = updateAugCSTransitionsVals(transition, num_of_transitions, ncs, cs, beam)
+                        num_of_transitions, aug_stick_val = updateAugCSTransitionsVals(transition, num_of_transitions, ncs, cs, beam, FWHM)
                         
                         bad_selection = stick_auger(graph_area, aug_stick_val, transition, bad_selection, cs)
 
@@ -1298,12 +1310,14 @@ def make_Mstick(sim, graph_area):
         messagebox.showerror("Wrong Transition", "You chose " + str(bad_selection) + " invalid transition(s)")
 
 
-def simu_diagram(diag_sim_val):
+def simu_diagram(diag_sim_val, beam, cs = False):
     """
     Function to organize the data to be sent to the plotter function for diagram transitions.
     
         Args:
             diag_sim_val: array with the rates data from the selected diagram transition
+            beam: beam energy value from the interface to control if we need to multiply by the overlap
+            cs: charge state flag to know if we need to multiply by the mixing fraction
         
         Returns:
             x1: energy values for every line possible within the selected transition
@@ -1312,13 +1326,19 @@ def simu_diagram(diag_sim_val):
     """
     # Extract the energies, intensities and widths of the transition (different j and eigv)
     x1 = [float(row[8]) for row in diag_sim_val]
-    y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
     w1 = [float(row[15]) for row in diag_sim_val]
+    
+    if beam > 0 and cs:
+        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * row[-2] * row[-1] for row in diag_sim_val]
+    elif beam > 0 or cs:
+        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * row[-1] for row in diag_sim_val]
+    else:
+        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
     
     return x1, y1, w1
 
 
-def simu_sattelite(sat_sim_val, low_level, high_level, beam):
+def simu_sattelite(sat_sim_val, low_level, high_level, beam, FWHM, cs = False):
     """
     Function to check and send the data to the stick plotter function for sattelite transitions.
     
@@ -1327,6 +1347,8 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam):
             low_level: low level of the selected transition
             high_level: high level of the selected transition
             beam: beam energy user value from the interface
+            FWHM: beam energy FWHM user value from the interface
+            cs: charge state flag to know if we need to multiply by the mixing fraction
         
         Returns:
             xs_inds: nested list with the energy values of each satellite transition possible for the selected diagram transition
@@ -1341,15 +1363,20 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam):
     # Loop the shake labels read from the shake weights file
     for ind, key in enumerate(generalVars.label1):
         # Filter the specific combination of radiative transition and shake level (key) to simulate
-        sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val, beam)
+        sat_sim_val_ind = updateSatTransitionVals(low_level, high_level, key, sat_sim_val, beam, FWHM)
         
         # Check if there is at least one satellite transition
         if len(sat_sim_val_ind) > 0:
             # Extract the energies, intensities and widths of the transition (different j and eigv)
             x1s = [float(row[8]) for row in sat_sim_val_ind]
-            y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
             w1s = [float(row[15]) for row in sat_sim_val_ind]
-            # Store the values in a list containing all the transitions to simulate
+            
+            if beam > 0 and cs:
+                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-2] * row[-1] for row in sat_sim_val_ind]
+            elif beam > 0 or cs:
+                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-1] for row in sat_sim_val_ind]
+            else:
+                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
             
             xs_inds.append(x1s)
             ys_inds.append(y1s)
@@ -1362,12 +1389,14 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam):
     return xs_inds, ys_inds, ws_inds
 
 
-def simu_auger(aug_sim_val):
+def simu_auger(aug_sim_val, beam, cs = False):
     """
     Function to organize the data to be sent to the plotter function for diagram transitions.
     
         Args:
             aug_sim_val: array with the rates data from the selected auger transition
+            beam: beam energy value from the interface to control if we need to multiply by the overlap
+            cs: charge state flag to know if we need to multiply by the mixing fraction
         
         Returns:
             x1: energy values for every line possible within the selected transition
@@ -1376,8 +1405,14 @@ def simu_auger(aug_sim_val):
     """
     # Extract the energies, intensities and widths of the transition (different j and eigv)
     x1 = [float(row[8]) for row in aug_sim_val]
-    y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) for row in aug_sim_val]
     w1 = [float(row[10]) for row in aug_sim_val]
+    
+    if beam > 0 and cs:
+        y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) * row[-2] * row[-1] for row in aug_sim_val]
+    elif beam > 0 or cs:
+        y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) * row[-1] for row in aug_sim_val]
+    else:
+        y1 = [float(row[9]) * (1 - sum(generalVars.shakeweights)) for row in aug_sim_val]
     
     return x1, y1, w1
 
@@ -1483,7 +1518,6 @@ def calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points
     else:
         generalVars.xfinal = np.zeros(num_of_points)
     
-
 
 def initialize_expElements(f, load, enoffset, num_of_points, x_mx, x_mn, normalize):
     """
@@ -1732,6 +1766,7 @@ def make_simulation(sim, f, graph_area, time_of_click):
     
     sat = guiVars.satelite_var.get()
     beam = guiVars.excitation_energy.get()
+    FWHM = guiVars.excitation_energyFWHM.get()
     
     # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
     if sat != 'Auger':
@@ -1743,14 +1778,14 @@ def make_simulation(sim, f, graph_area, time_of_click):
         for index, transition in enumerate(the_dictionary):
             if the_dictionary[transition]["selected_state"]:
                 # Same filter as the sticks but we dont keep track of the number of selected transitions
-                _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadTransitionVals(transition, 0, beam)
+                _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadTransitionVals(transition, 0, beam, FWHM)
                 
                 if 'Diagram' in sat:
                     # Store the values in a list containing all the transitions to simulate
-                    x[index], y[index], w[index] = simu_diagram(diag_sim_val)
+                    x[index], y[index], w[index] = simu_diagram(diag_sim_val, beam, False)
                 if 'Satellites' in sat:
                     # Store the values in a list containing all the transitions to simulate
-                    xs[index], ys[index], ws[index] = simu_sattelite(sat_sim_val, low_level, high_level, beam)
+                    xs[index], ys[index], ws[index] = simu_sattelite(sat_sim_val, low_level, high_level, beam, FWHM, False)
         
         # -------------------------------------------------------------------------------------------
         # Check if there are any transitions with missing rates
@@ -1766,10 +1801,10 @@ def make_simulation(sim, f, graph_area, time_of_click):
         for index, transition in enumerate(the_aug_dictionary):
             if the_aug_dictionary[transition]["selected_state"]:
                 # Same as the stick but we dont care about the number of transitions
-                _, aug_stick_val = updateAugTransitionVals(transition, 0, beam)
+                _, aug_stick_val = updateAugTransitionVals(transition, 0, beam, FWHM)
                 
                 # Store the values in a list containing all the transitions to simulate
-                x[index], y[index], w[index] = simu_auger(aug_sim_val)
+                x[index], y[index], w[index] = simu_auger(aug_sim_val, beam, False)
 
         # -------------------------------------------------------------------------------------------
         # Check if there are any transitions with missing rates
@@ -2009,6 +2044,7 @@ def make_Msimulation(sim, f, graph_area, time_of_click):
     
     sat = guiVars.satelite_var.get()
     beam = guiVars.excitation_energy.get()
+    FWHM = guiVars.excitation_energyFWHM.get()
     
     # Radiative and Auger code has to be split due to the different dictionaries used for the transitions
     if sat != 'Auger':
@@ -2048,14 +2084,14 @@ def make_Msimulation(sim, f, graph_area, time_of_click):
             for index, transition in enumerate(the_dictionary):
                 if the_dictionary[transition]["selected_state"]:
                     # Same as sticks but we dont care about the number of transitions
-                    _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadCSTrantitionsVals(transition, 0, ncs, cs, beam)
+                    _, low_level, high_level, diag_sim_val, sat_sim_val = updateRadCSTrantitionsVals(transition, 0, ncs, cs, beam, FWHM)
                     
                     if 'Diagram' in sat:
                         # Store the values in a list containing all the transitions and charge states to simulate
-                        x[cs_index * len(the_dictionary) + index], y[cs_index * len(the_dictionary) + index], w[cs_index * len(the_dictionary) + index] = simu_diagram(diag_sim_val)
+                        x[cs_index * len(the_dictionary) + index], y[cs_index * len(the_dictionary) + index], w[cs_index * len(the_dictionary) + index] = simu_diagram(diag_sim_val, beam, True)
                     if 'Satellites' in sat:
                         # Store the values in a list containing all the charge states and transitions to simulate
-                        xs[cs_index * len(the_dictionary) + index], ys[cs_index * len(the_dictionary) + index], ws[cs_index * len(the_dictionary) + index] = simu_sattelite(sat_sim_val, low_level, high_level, beam)
+                        xs[cs_index * len(the_dictionary) + index], ys[cs_index * len(the_dictionary) + index], ws[cs_index * len(the_dictionary) + index] = simu_sattelite(sat_sim_val, low_level, high_level, beam, FWHM, True)
 
             # -------------------------------------------------------------------------------------------
             # Check if there are any transitions with missing rates
@@ -2097,10 +2133,10 @@ def make_Msimulation(sim, f, graph_area, time_of_click):
             for index, transition in enumerate(the_aug_dictionary):
                 if the_aug_dictionary[transition]["selected_state"]:
                     # Same as stick but we dont care about the number of transitions
-                    _, aug_sim_val = updateAugCSTransitionsVals(transition, 0, ncs, cs, beam)
+                    _, aug_sim_val = updateAugCSTransitionsVals(transition, 0, ncs, cs, beam, FWHM)
                     
                     # Store the values in a list containing all the transitions to simulate
-                    x[cs_index * len(the_aug_dictionary) + index], y[cs_index * len(the_aug_dictionary) + index], w[cs_index * len(the_aug_dictionary) + index] = simu_auger(aug_sim_val)
+                    x[cs_index * len(the_aug_dictionary) + index], y[cs_index * len(the_aug_dictionary) + index], w[cs_index * len(the_aug_dictionary) + index] = simu_auger(aug_sim_val, beam, True)
 
             # -------------------------------------------------------------------------------------------
             # Check if there are any transitions with missing rates

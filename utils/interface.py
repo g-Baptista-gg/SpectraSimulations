@@ -115,10 +115,15 @@ energy_offset = None
 """
 Variable to hold the value of the energy introduced by the user in the interface
 """
-# Variable to hold the value of the excitation/beam energy by the user in the interface
+# Variable to hold the value of the excitation/beam energy introduced by the user in the interface
 excitation_energy = None
 """
-Variable to hold the value of the excitation/beam energy by the user in the interface
+Variable to hold the value of the excitation/beam energy introduced by the user in the interface
+"""
+# Variable to hold the value of the excitation/beam energy FWHM introduced by the user in the interface
+excitation_energyFWHM = None
+"""
+Variable to hold the value of the excitation/beam energy FWHM introduced by the user in the interface
 """
 # Variable to hold the number of points introduced by the user in the interface, to calculate the energy grid where we simulate the spectrum
 number_points = None
@@ -552,7 +557,7 @@ def setupVars(p):
     """
     # Use global to be able to initialize and change the values of the global interface variables
     global _parent, totalvar, yscale_log, xscale_log, autofitvar, normalizevar, loadvar, effic_var
-    global exp_resolution, yoffset, energy_offset, excitation_energy, number_points, x_max, x_min, progress_var, label_text
+    global exp_resolution, yoffset, energy_offset, excitation_energy, excitation_energyFWHM, number_points, x_max, x_min, progress_var, label_text
     global satelite_var, choice_var, type_var, exc_mech_var
     
     # setup the parent object to bind stuff to
@@ -596,6 +601,8 @@ def setupVars(p):
     energy_offset = DoubleVar(master = _parent, value=0.0)
     # Variable to hold the excitation/beam energy value introduced in the interface
     excitation_energy = DoubleVar(master = _parent, value=0.0)
+    # Variable to hold the excitation/beam energy FWHM value introduced in the interface
+    excitation_energyFWHM = DoubleVar(master = _parent, value=0.0)
     # Variable to hold the number of points to simulate introduced in the interface
     number_points = IntVar(master = _parent, value=500)
     
@@ -672,6 +679,9 @@ def setupButtonArea(buttons_frame, buttons_frame2, buttons_frame3, buttons_frame
     # Beam Energy
     beam_entry = ttk.Entry(buttons_frame3, width=7, textvariable=excitation_energy).pack(side=RIGHT, padx=(0, 30))
     ttk.Label(buttons_frame3, text="Beam Energy (eV)").pack(side=RIGHT)
+    # Beam Energy FWHM
+    beamFWHM_entry = ttk.Entry(buttons_frame3, width=7, textvariable=excitation_energyFWHM).pack(side=RIGHT, padx=(0, 30))
+    ttk.Label(buttons_frame3, text="Beam FWHM (eV)").pack(side=RIGHT)
     # Energy Resolution
     ttk.Label(buttons_frame3, text="Experimental Resolution (eV)").pack(side=LEFT)
     res_entry = ttk.Entry(buttons_frame3, width=7, textvariable=exp_resolution).pack(side=LEFT)
@@ -691,7 +701,7 @@ def setupMenus(CS_exists):
         Returns:
             Nothing, we just setup the top toolbar and bind the necessary variables and functions to the interface elements
     """
-    global totalvar, yscale_log, xscale_log, autofitvar, energy_offset, excitation_energy, yoffset, normalizevar, satelite_var, choice_var, type_var, exc_mech_var, _sim
+    global totalvar, yscale_log, xscale_log, autofitvar, energy_offset, excitation_energy, excitation_energyFWHM, yoffset, normalizevar, satelite_var, choice_var, type_var, exc_mech_var, _sim
     global loadvar, effic_var
     
     # Initialize the menus
@@ -717,7 +727,7 @@ def setupMenus(CS_exists):
     options_menu.add_separator()
     options_menu.add_checkbutton(label="Import Detector Efficiency", command=lambda: load_effic_file(effic_var))
     options_menu.add_separator()
-    options_menu.add_command(label="Export Spectrum", command=lambda: write_to_xls(satelite_var.get(), energy_offset.get(), excitation_energy.get(), yoffset.get(), _residues_graph))
+    options_menu.add_command(label="Export Spectrum", command=lambda: write_to_xls(satelite_var.get(), energy_offset.get(), excitation_energy.get(), excitation_energyFWHM.get(), yoffset.get(), _residues_graph))
     options_menu.add_separator()
     options_menu.add_command(label="Choose New Element", command=restarter)
     options_menu.add_command(label="Quit", command=_quit)
