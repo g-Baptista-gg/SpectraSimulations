@@ -660,15 +660,10 @@ def get_overlap(line, beam, FWHM):
             overlap: the overlap
     """
     if len(line[1]) == 2:
-        pWidth = 0
-        for level in generalVars.diagramwidths:
-            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3] and level[5] == line[5] and level[6] == line[6] and level[7] == line[7]:
-                pWidth = float(level[10]) / 2
-                break
-        
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
+                pWidth = float(level[6])
                 
                 def integrand(x):
                     l = (0.5 * pWidth / np.pi) / ((x - formationEnergy) ** 2 + (0.5 * pWidth) ** 2)
@@ -686,15 +681,10 @@ def get_overlap(line, beam, FWHM):
                     overlap = integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)
                     return overlap[0]
     else:
-        pWidth = 0
-        for level in generalVars.satellitewidths:
-            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3] and level[5] == line[5] and level[6] == line[6] and level[7] == line[7]:
-                pWidth = float(level[10]) / 2
-                break
-        
         for level in generalVars.ionizationssat:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
+                pWidth = float(level[6])
                 
                 def integrand(x):
                     l = (0.5 * pWidth / np.pi) / ((x - formationEnergy) ** 2 + (0.5 * pWidth) ** 2)
@@ -1770,7 +1760,7 @@ def execute_autofit(sat, enoffset, y0, res, num_of_points, peak, x, y, w, xs, ys
     return number_of_fit_variables, enoffset, y0, res, ytot_max, normalization_var
 
 
-def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
+def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total, plotSimu):
     """
     Function to plot the simulation values according to the selected transition types.
     
@@ -1791,9 +1781,10 @@ def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
         for index, key in enumerate(the_dictionary):
             if the_dictionary[key]["selected_state"]:
                 totalDiagInt.append(sum(generalVars.yfinal[index]))
-                # Plot the selected transition
-                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                graph_area.legend()
+                if plotSimu:
+                    # Plot the selected transition
+                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                    graph_area.legend()
     if 'Satellites' in sat:
         totalSatInt = []
         for index, key in enumerate(the_dictionary):
@@ -1802,20 +1793,23 @@ def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
                     # Dont plot the satellites that have a max y value of 0
                     if max(m) != 0:
                         totalSatInt.append(sum(m))
-                        # Plot the selected transition
-                        graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                        graph_area.legend()
+                        if plotSimu:
+                            # Plot the selected transition
+                            graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                            graph_area.legend()
         print(str(guiVars.excitation_energy.get()) + "; " + str(sum(totalDiagInt)) + "; " + str(sum(totalSatInt)))
     if sat == 'Auger':
         for index, key in enumerate(the_aug_dictionary):
             if the_aug_dictionary[key]["selected_state"]:
-                # Plot the selected transition
-                graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
-                graph_area.legend()
+                if plotSimu:
+                    # Plot the selected transition
+                    graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
+                    graph_area.legend()
     if total == 'Total':
-        # Plot the selected transition
-        graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')
-        graph_area.legend()
+        if plotSimu:
+            # Plot the selected transition
+            graph_area.plot(generalVars.xfinal + enoffset, (generalVars.ytot * normalization_var) + y0, label='Total', ls='--', lw=2, color='k')
+            graph_area.legend()
 
 
 def format_legend(graph_area):
@@ -1883,7 +1877,7 @@ def initialize_XYW(type_simu, ploted_cs = []):
     return x, y, w, xs, ys, ws
     
 
-def make_simulation(sim, f, graph_area, time_of_click):
+def make_simulation(sim, f, graph_area, time_of_click, plotSimu = True):
     """
     Function to calculate the values that will be sent to the plot function.
         
@@ -2011,7 +2005,7 @@ def make_simulation(sim, f, graph_area, time_of_click):
     
     # ------------------------------------------------------------------------------------------------------------------------
     # Plot the selected lines
-    simu_plot(sat, graph_area, enoffset, normalization_var, y0, guiVars.totalvar.get())
+    simu_plot(sat, graph_area, enoffset, normalization_var, y0, guiVars.totalvar.get(), plotSimu)
     
     # ------------------------------------------------------------------------------------------------------------------------
     # Calculate the residues
@@ -2424,7 +2418,7 @@ def plot_stick(sim, f, graph_area):
         make_simulation(sim, f, graph_area, time_of_click)
         #for energ in np.linspace(8995, 10500, 5000):
         #    guiVars.excitation_energy.set(energ)
-        #    make_simulation(sim, f, graph_area, time_of_click)
+        #    make_simulation(sim, f, graph_area, time_of_click, False)
     # --------------------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'M_Simulation':
         make_Msimulation(sim, f, graph_area, time_of_click)
