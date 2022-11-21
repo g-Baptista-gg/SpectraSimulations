@@ -509,7 +509,7 @@ def readShakeWeights(shakeweights_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Shake Weigths File is not Avaliable: " + str(shakeweights_file))
 
-# Read the ionization energies file and return a list with the data and a list with the labels
+# Read the ionization energies file and return a list with the data
 def readIonizationEnergies(ioniz_file):
     """
     Function to read the ionization energies file
@@ -533,7 +533,7 @@ def readIonizationEnergies(ioniz_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Ionization Energies File is not Avaliable: " + str(ioniz_file))
 
-# Read the diagram widths file and return a list with the data and a list with the labels
+# Read the diagram widths file and return a list with the data
 def readDiagramWidths(diagramwidths):
     """
     Function to read the diagram widths file
@@ -557,7 +557,7 @@ def readDiagramWidths(diagramwidths):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Diagram Widths File is not Avaliable: " + str(diagramwidths))
 
-# Read the satellite widths file and return a list with the data and a list with the labels
+# Read the satellite widths file and return a list with the data
 def readSatelliteWidths(satellitewidths):
     """
     Function to read the diagram widths file
@@ -580,6 +580,30 @@ def readSatelliteWidths(satellitewidths):
             return widths
     except FileNotFoundError:
         messagebox.showwarning("Error", "Satellite Widths File is not Avaliable: " + str(satellitewidths))
+
+# Read the mean radius file and return a list with the data
+def readMeanR(meanR_file):
+    """
+    Function to read the mean radius file
+        
+        Args:
+            meanR_file: file path of the satellite widths file
+            
+        Returns:
+            meanRs: list with the mean radius still in string format
+    """
+    try:
+        with open(meanR_file, 'r') as means:
+            # Write the lines into a list
+            meanRs = [x.strip('\n').split() for x in means.readlines()]
+            # Remove empty strings from possible uneven formating
+            meanRs = list(filter(None, meanRs))
+            # Delete the header rows
+            del meanRs[0:2]
+            
+            return meanRs
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "Mean Radius File is not Avaliable: " + str(meanR_file))
 
 # ----------------------------------------------------- #
 #                                                       #

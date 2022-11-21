@@ -14,7 +14,7 @@ import os
 import data.variables as generalVars
 
 #File IO Imports
-from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies, readDiagramWidths, readSatelliteWidths
+from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies, readDiagramWidths, readSatelliteWidths, readMeanR
 from utils.fileIO import searchChargeStates, readChargeStates, readIonPop
 
 #Function Imports
@@ -56,6 +56,7 @@ def simulateSpectra(dir_path, element, parent):
     
     # Initialize the element name for the functions module
     utils.functions.element_name = element_name
+    generalVars.Z = z
     
     # Path to the radiative rates file for this element
     radrates_file = dir_path / str(z) / (str(z) + '-intensity.out')
@@ -120,6 +121,14 @@ def simulateSpectra(dir_path, element, parent):
     """
     # Read the satellite rates file
     generalVars.satellitewidths = readSatelliteWidths(satrateswidths_file)
+    
+    # Path to the mean radius file for this element
+    meanRs_file = dir_path / str(z) / (str(z) + '-meanR.out')
+    """
+    Variable with the full path to the mean radius file for this element
+    """
+    # Read the mean radius file
+    generalVars.meanRs = readMeanR(meanRs_file)
     
     # Variable to active or deactivate the charge state simulation in the interface menu
     CS_exists = False

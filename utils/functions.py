@@ -110,6 +110,105 @@ def V(T, energy, intens, res, width):
     return y
 
 
+# --------------------------------------------------------- #
+#                                                           #
+#               ELECTRON IMPACT CROSS SECTION               #
+#                                                           #
+# --------------------------------------------------------- #
+
+
+def MRBEB(C, B, impactEnergy):
+    """
+    Function to calculate the electron impact cross section using the MRBEB model
+    
+        Args:
+            C: effective nuclear shielding factor
+            B: electron binding energy for the electron to be ionized
+            impactEnergy: energy of the progectile electron
+        
+        Returns:
+            SE: electron impact cross section
+    """
+    bl = B/generalVars.mc2
+    t = impactEnergy/B
+    tl = impactEnergy/generalVars.mc2
+    beta2t = 1 - 1/((1+tl)**2)
+    beta2b = 1 - 1/((1+bl)**2)
+    c = (C/B)*2.0*generalVars.R
+    Pre = (4.0*np.pi*generalVars.a0*generalVars.a0*generalVars.Z*generalVars.alpha**4)/((beta2t + c * beta2b)*2*bl)
+    SE = Pre * (0.5*(np.log(beta2t/(1-beta2t)) - beta2t - np.log(2*bl))*(1.0- 1.0/(t*t)) + (1.0 - 1.0/t) - (np.log(t)/(t+1.0))*((1+2*tl)/((1+tl/2)**2)) + ((bl*bl*(t-1))/(2*(1+tl/2)**2)) )
+    if(impactEnergy < B):
+        SE = 0
+    return SE
+
+
+def Zeff(meanR):
+    '''
+        As per the definition given by Douglas Hartree
+        the effective Z of an Hartree-Fock orbital is
+        the mean radius of the hydrogen orbital divided
+        by the mean radius of the target orbital
+        
+        Args:
+            meanR: mean orbital radius occupied by the electron we want to ionize
+        
+        Returns:
+            Zeff: effective nuclear charge of the orbital
+    '''
+    
+    return generalVars.meanHR/meanR
+
+
+def C(Zeff1, Zeff2, n1, n2):
+    """
+    Function to calculate the effective nuclear shielding factor
+        
+        Args:
+            Zeff1: effective nuclear charge of the orbital we want to ionize
+            Zeff2: effective nuclear charge of the orbital right after the one we want to ionize
+            n1: principal quantum number of the orbital we want to ionize
+            n2: principal quantum number of the orbital right after the one we want to ionize
+        
+        Returns:
+            C: the effective nuclear shielding factor
+    """
+    return (0.3*Zeff1**2)/(2*n1**2) + (0.7*Zeff2**2)/(2*n2**2)
+
+
+def get_Zeff(label):
+    for i, line in enumerate(generalVars.meanRs):
+        if line[0] == label:
+            eff = Zeff(float(line[1]))
+            
+            if 'K' in line[0]:
+                n = 1
+            elif 'L' in line[0]:
+                n = 2
+            elif 'M' in line[0]:
+                n = 3
+            elif 'N' in line[0]:
+                n = 4
+            
+            return eff, n
+
+
+def setupMRBEB():
+    totalMRBEB = []
+    
+    for i, label in enumerate(generalVars.label1[:-1]):
+        Zeff1, n1 = get_Zeff(label)
+        Zeff2, n2 = get_Zeff(generalVars.label1[i + 1])
+        totalMRBEB.append(lambda b, x: MRBEB(C(Zeff1, Zeff2, n1, n2), b, x))
+    
+    totalMRBEB.append(totalMRBEB[-1])
+    
+    for i, label in enumerate(generalVars.label1[:-1]):
+        Zeff1, n1 = get_Zeff(label)
+        Zeff2, n2 = get_Zeff(generalVars.label1[i + 1])
+        generalVars.elementMRBEB[label] = lambda b, x: MRBEB(C(Zeff1, Zeff2, n1, n2), b, x) / sum(totals(b, x) for totals in totalMRBEB)
+    
+    generalVars.elementMRBEB[generalVars.label1[-1]] = generalVars.elementMRBEB[generalVars.label1[-2]]
+
 
 # --------------------------------------------------------- #
 #                                                           #
@@ -564,22 +663,35 @@ def get_overlap(line, beam, FWHM):
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
+                
+                def integrand(x):
+                    return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2)) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
+                
+                if formationEnergy > (beam + 5 * FWHM):
+                    return 0.0
+                elif formationEnergy > (beam - 5 * FWHM):
+                    overlap = integrate.quad(integrand, formationEnergy, np.inf)
+                    return overlap[0]
+                else:
+                    return generalVars.elementMRBEB[line[1]](formationEnergy, beam)
     else:
         for level in generalVars.ionizationssat:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
-    
-    def integrand(x):
-        return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
-    
-    if formationEnergy > (beam + 5 * FWHM):
-        return 0.0
-    elif formationEnergy > (beam - 5 * FWHM):
-        overlap = integrate.quad(integrand, formationEnergy, np.inf)
-        return overlap[0]
-    else:
-        return 1.0
+                
+                def integrand(x):
+                    return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2)) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
+                
+                if formationEnergy > (beam + 5 * FWHM):
+                    return 0.0
+                elif formationEnergy > (beam - 5 * FWHM):
+                    overlap = integrate.quad(integrand, formationEnergy, np.inf)
+                    return overlap[0]
+                else:
+                    return min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, beam), generalVars.elementMRBEB[line[1][2:]](formationEnergy, beam))
 
+    
+    
 # Update the radiative and satellite rates for the selected transition
 def updateRadTransitionVals(transition, num, beam, FWHM):
     """
@@ -1652,15 +1764,14 @@ def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
             Nothing. The interface is updated with the new simulation data.
     """
     
+    totalDiagInt = []
     if 'Diagram' in sat:
-        totalDiagInt = []
         for index, key in enumerate(the_dictionary):
             if the_dictionary[key]["selected_state"]:
                 totalDiagInt.append(sum(generalVars.yfinal[index]))
                 # Plot the selected transition
                 graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinal[index]) * normalization_var) + y0, label=key, color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
                 graph_area.legend()
-        print(sum(totalDiagInt))
     if 'Satellites' in sat:
         totalSatInt = []
         for index, key in enumerate(the_dictionary):
@@ -1672,7 +1783,7 @@ def simu_plot(sat, graph_area, enoffset, normalization_var, y0, total):
                         # Plot the selected transition
                         graph_area.plot(generalVars.xfinal + enoffset, (np.array(generalVars.yfinals[index][l]) * normalization_var) + y0, label=key + ' - ' + labeldict[generalVars.label1[l]], color=str(col2[np.random.randint(0, 7)][0]))  # Plot the simulation of all lines
                         graph_area.legend()
-        print(sum(totalSatInt))
+        print(str(guiVars.excitation_energy.get()) + "; " + str(sum(totalDiagInt)) + "; " + str(sum(totalSatInt)))
     if sat == 'Auger':
         for index, key in enumerate(the_aug_dictionary):
             if the_aug_dictionary[key]["selected_state"]:
@@ -2278,6 +2389,8 @@ def plot_stick(sim, f, graph_area):
     
     spectype = guiVars.choice_var.get()
     
+    setupMRBEB()
+    
     # --------------------------------------------------------------------------------------------------------------------------
     if spectype == 'Stick':
         make_stick(sim, graph_area)
@@ -2287,6 +2400,9 @@ def plot_stick(sim, f, graph_area):
     # --------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'Simulation':
         make_simulation(sim, f, graph_area, time_of_click)
+        for energ in np.linspace(8995, 10500, 5000):
+            guiVars.excitation_energy.set(energ)
+            make_simulation(sim, f, graph_area, time_of_click)
     # --------------------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'M_Simulation':
         make_Msimulation(sim, f, graph_area, time_of_click)

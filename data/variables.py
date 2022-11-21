@@ -198,6 +198,48 @@ ionpopdata = []
 Variable to hold the data read from the ion populations file
 """
 
+#Raw data read from the mean radius file
+meanRs = []
+"""
+Variable to holf the data read from the mean radius file
+"""
+
+#Mean radius of hydrogen
+meanHR = 3 * 0.52918*10**-10 / 2
+"""
+Hydrogen mean radius to calculate the MRBEB electron impact cross sections
+"""
+#Value of the speed of light squared multiplyed by the electron mass
+mc2 = 510998.9461
+"""
+Value of the speed of light squared multiplyed by the electron mass for relativistic calculations
+"""
+#Value of the physical constant alpha
+alpha = 1.0/137.035999084
+"""
+Value of the physical constant alpha
+"""
+#Value of Bohrs radius
+a0 = 0.52918*10**-10
+"""
+Value of Bohrs radius
+"""
+#Value of the Rydberg energy
+R = 13.6057
+"""
+Value of the Rydberg energy
+"""
+#Value of the current elements Z
+Z = 0
+"""
+Value of the current elements Z
+"""
+#Dictionary to hold the functions to calculate the MRBEB cross section with the parameters for each shell
+elementMRBEB = {}
+"""
+Dictionary to hold the functions to calculate the MRBEB cross section with the parameters for each shell
+"""
+
 #Correspondence between Siegbahn notation and relativistic orbitals
 labeldict = {'K1': '1s', 'L1': '2s', 'L2': '2p*', 'L3': '2p', 'M1': '3s', 'M2': '3p*', 'M3': '3p', 'M4': '3d*',
              'M5': '3d', 'N1': '4s', 'N2': '4p*', 'N3': '4p', 'N4': '4d*', 'N5': '4d', 'N6': '4f*', 'N7': '4f',
