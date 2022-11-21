@@ -674,7 +674,7 @@ def get_overlap(line, beam, FWHM):
                     return min(l, g) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
                 
                 if beam > formationEnergy + 10 * pWidth:
-                    return 0.97 * generalVars.elementMRBEB[line[1]](formationEnergy, beam)
+                    return integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)[0]
                 elif beam < formationEnergy - 10 * pWidth:
                     return 0.0
                 else:
@@ -695,7 +695,7 @@ def get_overlap(line, beam, FWHM):
                     return min(l, g) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
                 
                 if beam > formationEnergy + 10 * pWidth:
-                    return 0.97 * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, beam), generalVars.elementMRBEB[line[1][2:]](formationEnergy, beam))
+                    return integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)[0]
                 elif beam < formationEnergy - 10 * pWidth:
                     return 0.0
                 else:
