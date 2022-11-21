@@ -18,24 +18,20 @@ Percentagef = []
 #ALL VALUES IN eV WHEN APPLICABLE
 Energies = []
 Rate = []
+Width = []
 MultipoleNum = []
 TotRateIS = []
 BranchingRatio = []
 MultipoleRates = []
 
+h = 4.135667696 * 10**(-15)
+
 def main():
-    if len(sys.argv) != 2:
-        print("Expected charge state in input... terminating.")
-        return
-    
-    chargeState = sys.argv[1]
-    
-    with open("rates_raw/" + chargeState + "/Fe_" + chargeState + "_rates_radiative.txt", "r") as lines:
+    with open("Cu_rates_radiative.txt", "r") as lines:
         header = lines.readline().strip() #header line
         #print(header.split("\t"))
         for i, line in enumerate(lines):
             values = line.strip().split("\t")
-            #print(values)
             
             Shelli.append(values[1].strip())
             LowerConfigi.append(values[2].strip())
@@ -59,6 +55,7 @@ def main():
             
             Energies.append(values[13].strip())
             Rate.append(values[14].strip())
+            Width.append(float(Rate[-1]) * h)
             MultipoleNum.append(values[15].strip())
             TotRateIS.append(values[16].strip())
             BranchingRatio.append(values[17].strip())
@@ -108,22 +105,22 @@ def main():
                 Shellf[record] = "M3"
         
         if Shelli[record] == "3d":
-            if "3d*1" in Configi[record]:
+            if "3d*3" in Configi[record]:
                 Shelli[record] = "M4"
-            elif "3d*2" in Configi[record]:
+            elif "3d*4" in Configi[record]:
                 Shelli[record] = "M5"
         if Shellf[record] == "3d":
-            if "3d*1" in Configf[record]:
+            if "3d*3" in Configf[record]:
                 Shellf[record] = "M4"
-            elif "3d*2" in Configf[record]:
+            elif "3d*4" in Configf[record]:
                 Shellf[record] = "M5"
 
-    with open("rates_converted/" + chargeState + "/26-intensity_" + chargeState + ".out", "w") as output:
-        output.write("# Atomic number Z= 26  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
-        output.write("# Register Shell IS\t   Configuration IS \t\t\t\t2JJ IS \t\t Eigi \t  Higher Config IS \t\t\t\t\t percentage IS ---> \t Shell FS \t  Configuration FS \t\t\t\t\t2JJ FS \t\t Eigf \t  Higher Config FS \t\t\t\t\t percentage FS \t\tEnergy(eV)\t\t\t rate(s-1)\t\t\tmultipole number\t\t\ttotal rate from IS\t\t\tBranchingRatio\n")
+    with open("29-radrate.out", "w") as output:
+        output.write("# Atomic number Z= 29  Date:" + datetime.today().strftime('%d-%m-%Y') + "\n\n")
+        output.write("# Register Shelli\t2Ji\t\tEigi\t ---> \t Shellf\t\t2Jf\t\tEigf\tEnergy(eV)\t\t\tRate(s-1)\t\tWidth(eV)\n")
         
         for i in range(len(Shelli)):
-            output.write(f'\t{str(i+1):<2}\t{Shelli[i]:>5}\t{LowerConfigi[i]:>35}\t{str(JJi[i]):>5}\t{Eigeni[i]:>10}\t{Configi[i]:>35}\t{Percentagei[i]:>10} \t\t   ---> \t{Shellf[i]:>5}\t{LowerConfigf[i]:>35}\t{str(JJf[i]):>5}\t{Eigenf[i]:>10}\t{Configf[i]:>35}\t{Percentagef[i]:>10}\t\t\t\t{Energies[i]:<18}\t {Rate[i]:<25}\t{MultipoleNum[i]:<2}\t\t\t\t\t{TotRateIS[i]:<25}\t{BranchingRatio[i]:<23}\t\t\t{MultipoleRates[i]}\n')
+            output.write(f'\t{str(i+1):<3}\t{Shelli[i]:>5}\t{str(JJi[i]):>5}\t{Eigeni[i]:>6}\t\t ---> \t{Shellf[i]:>5}\t{str(JJf[i]):>5}\t{Eigenf[i]:>6}\t\t{Energies[i]:<18}\t{Rate[i]:<15}\t{Width[i]:<15}\n')
 
 if __name__ == "__main__":
    main()

@@ -660,35 +660,57 @@ def get_overlap(line, beam, FWHM):
             overlap: the overlap
     """
     if len(line[1]) == 2:
+        pWidth = 0
+        for level in generalVars.diagramwidths:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3] and level[5] == line[5] and level[6] == line[6] and level[7] == line[7]:
+                pWidth = float(level[10]) / 2
+                break
+        
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
                 
                 def integrand(x):
-                    return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2)) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
+                    l = (0.5 * pWidth / np.pi) / ((x - formationEnergy) ** 2 + (0.5 * pWidth) ** 2)
+                    if x > beam:
+                        g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2) * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
+                    else:
+                        g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2)
+                    return min(l, g) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
                 
-                if formationEnergy > (beam + 5 * FWHM):
+                if beam > formationEnergy + 10 * pWidth:
+                    return 0.97 * generalVars.elementMRBEB[line[1]](formationEnergy, beam)
+                elif beam < formationEnergy - 10 * pWidth:
                     return 0.0
-                elif formationEnergy > (beam - 5 * FWHM):
-                    overlap = integrate.quad(integrand, formationEnergy, np.inf)
-                    return overlap[0]
                 else:
-                    return generalVars.elementMRBEB[line[1]](formationEnergy, beam)
+                    overlap = integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)
+                    return overlap[0]
     else:
+        pWidth = 0
+        for level in generalVars.satellitewidths:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3] and level[5] == line[5] and level[6] == line[6] and level[7] == line[7]:
+                pWidth = float(level[10]) / 2
+                break
+        
         for level in generalVars.ionizationssat:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 formationEnergy = float(level[5])
                 
                 def integrand(x):
-                    return np.sqrt(np.log(2) / np.pi) / FWHM * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2)) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
+                    l = (0.5 * pWidth / np.pi) / ((x - formationEnergy) ** 2 + (0.5 * pWidth) ** 2)
+                    if x > beam:
+                        g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2) * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
+                    else:
+                        g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2)
+                    return min(l, g) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
                 
-                if formationEnergy > (beam + 5 * FWHM):
+                if beam > formationEnergy + 10 * pWidth:
+                    return 0.97 * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, beam), generalVars.elementMRBEB[line[1][2:]](formationEnergy, beam))
+                elif beam < formationEnergy - 10 * pWidth:
                     return 0.0
-                elif formationEnergy > (beam - 5 * FWHM):
-                    overlap = integrate.quad(integrand, formationEnergy, np.inf)
-                    return overlap[0]
                 else:
-                    return min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, beam), generalVars.elementMRBEB[line[1][2:]](formationEnergy, beam))
+                    overlap = integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)
+                    return overlap[0]
 
     
     
@@ -2400,9 +2422,9 @@ def plot_stick(sim, f, graph_area):
     # --------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'Simulation':
         make_simulation(sim, f, graph_area, time_of_click)
-        for energ in np.linspace(8995, 10500, 5000):
-            guiVars.excitation_energy.set(energ)
-            make_simulation(sim, f, graph_area, time_of_click)
+        #for energ in np.linspace(8995, 10500, 5000):
+        #    guiVars.excitation_energy.set(energ)
+        #    make_simulation(sim, f, graph_area, time_of_click)
     # --------------------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'M_Simulation':
         make_Msimulation(sim, f, graph_area, time_of_click)
