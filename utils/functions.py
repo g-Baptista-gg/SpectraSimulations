@@ -702,8 +702,23 @@ def get_overlap(line, beam, FWHM):
                     overlap = integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)
                     return overlap[0]
 
+# Find the branching ratio from Auger process of a higher shell for the satellite transition
+def get_AugerBR(line):
+    """
+    Function to find the branching ratio for a satellite transition from the Auger process of a higher shell
+        
+        Args:
+            line: the data line of the transition that we want to find the ionization energy
+        
+        Returns:
+            BR: the branching ratio
+    """
+    for level in generalVars.ionizationssat:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
+                return float(level[7])
     
-    
+    return 0.0
+
 # Update the radiative and satellite rates for the selected transition
 def updateRadTransitionVals(transition, num, beam, FWHM):
     """
@@ -1496,9 +1511,9 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam, FWHM, cs = False):
             w1s = [float(row[15]) for row in sat_sim_val_ind]
             
             if beam > 0 and cs:
-                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-2] * row[-1] for row in sat_sim_val_ind]
+                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-2] * row[-1] * (1 + get_AugerBR(row)) for row in sat_sim_val_ind]
             elif beam > 0 or cs:
-                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-1] for row in sat_sim_val_ind]
+                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-1] * (1 + get_AugerBR(row)) for row in sat_sim_val_ind]
             else:
                 y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
             
@@ -1599,6 +1614,8 @@ def calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points
         if 'Diagram' in sat or 'Auger' in sat:
             # Get the bounds of the energies and widths to plot
             deltaEdiag, max_valuediag, min_valuediag = getBounds(x, w)
+        else:
+            diag = False
     except ValueError:
         diag = False
         
@@ -1611,6 +1628,8 @@ def calculate_xfinal(sat, x, w, xs, ws, x_mx, x_mn, res, enoffset, num_of_points
         if 'Satellites' in sat:
             # Get the bounds of the energies and widths to plot
             deltaEsat, max_valuesat, min_valuesat = getSatBounds(xs, ws)
+        else:
+            sats = False
     except ValueError:
         sats = False
         
