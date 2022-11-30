@@ -14,7 +14,7 @@ import os
 import data.variables as generalVars
 
 #File IO Imports
-from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies, readDiagramWidths, readSatelliteWidths, readMeanR
+from utils.fileIO import readRates, readShakeWeights, readIonizationEnergies, readDiagramWidths, readSatelliteWidths, readMeanR, readELAMelement
 from utils.fileIO import searchChargeStates, readChargeStates, readIonPop
 
 #Function Imports
@@ -129,6 +129,14 @@ def simulateSpectra(dir_path, element, parent):
     """
     # Read the mean radius file
     generalVars.meanRs = readMeanR(meanRs_file)
+    
+    # Path to the ELAM database file
+    ELAM_file = dir_path / ('ElamDB12.txt')
+    """
+    Variable with the full path ELAM database file
+    """
+    # Read the ELAM database File
+    generalVars.ELAMelement = readELAMelement(ELAM_file, z)
     
     # Variable to active or deactivate the charge state simulation in the interface menu
     CS_exists = False

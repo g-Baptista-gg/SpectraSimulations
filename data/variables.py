@@ -110,12 +110,17 @@ Variable to hold the data from the ionization energies file for 2 hole radiative
 #Raw data read from the diagram rates file
 diagramwidths = []
 """
-Variable with the full path to the diagram rates with partial widths file for this element
+Variable to hold the data from the diagram rates with partial widths file for this element
 """
 #Raw data read from the satellite rates file
 satellitewidths = []
 """
-Variable with the full path to the satellite rates with partial widths file for this element
+Variable to hold the data from the satellite rates with partial widths file for this element
+"""
+#Raw data read from the ELAM database file for the selected element
+ELAMelement = []
+"""
+Variable to hold the data from the ELAM database file for this element
 """
 
 #Raw data read from the shake wheights file to be simulated
@@ -238,6 +243,12 @@ Value of the current elements Z
 elementMRBEB = {}
 """
 Dictionary to hold the functions to calculate the MRBEB cross section with the parameters for each shell
+"""
+
+#Photo absorption spline interpolation to use for the cross section calculation
+ELAMPhotoSpline = None
+"""
+Variable to hold the spline interpolation to use when calculating the cross section
 """
 
 #Correspondence between Siegbahn notation and relativistic orbitals

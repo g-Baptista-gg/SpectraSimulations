@@ -605,6 +605,38 @@ def readMeanR(meanR_file):
     except FileNotFoundError:
         messagebox.showwarning("Error", "Mean Radius File is not Avaliable: " + str(meanR_file))
 
+# Read the ELAM database file and return the list with the data for the selected element
+def readELAMelement(ELAM_file, z):
+    """
+    Function to read the ELAM database file
+        
+        Args:
+            ELAM_file: file path of the ELAM database file
+            z: z value of the element to find in the database
+            
+        Returns:
+            ELAMelement: list with the ELAM data for the z
+    """
+    
+    try:
+        with open(ELAM_file, 'r') as ELAM:
+            ELAMelement = []
+            found = False
+            
+            symbol = [elem[3].strip() for elem in data.variables.per_table if elem[0] == z][0]
+            
+            for x in ELAM.readlines():
+                if 'EndElement' in x and found:
+                    break
+                if 'Element ' + symbol in x or found:
+                    found = True
+                    ELAMelement.append(x.strip('\n'))
+            
+            return ELAMelement
+    except FileNotFoundError:
+        messagebox.showwarning("Error", "ELAM database File is not Avaliable: " + str(ELAM_file))
+    
+
 # ----------------------------------------------------- #
 #                                                       #
 #    READ RATES AND IONPOP FILES FOR CHARGE STATES      #

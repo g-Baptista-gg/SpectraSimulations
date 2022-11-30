@@ -768,10 +768,10 @@ def setupMenus(CS_exists):
     
     # ---------------------------------------------------------------------------------------------------------------
     # Add the Excitation mechanism dropdown menu and the buttons bound to the corresponding variables and functions (disables as it is not implemented)
-    my_menu.add_cascade(label="Excitation Mechanism", menu=exc_mech_menu, state="disabled")
-    exc_mech_menu.add_checkbutton(label='Nuclear Electron Capture', variable=exc_mech_var, onvalue='NEC', offvalue='')
-    exc_mech_menu.add_checkbutton(label='Photoionization', variable=exc_mech_var, onvalue='PIon', offvalue='')
-    exc_mech_menu.add_checkbutton(label='Electron Impact Ionization', variable=exc_mech_var, onvalue='EII', offvalue='')
+    my_menu.add_cascade(label="Excitation Mechanism", menu=exc_mech_menu)
+    exc_mech_menu.add_checkbutton(label='Nuclear Electron Capture', variable=exc_mech_var, onvalue='NEC', offvalue='', state="disabled")
+    exc_mech_menu.add_checkbutton(label='Photoionization (ELAM database)', variable=exc_mech_var, onvalue='PIon', offvalue='')
+    exc_mech_menu.add_checkbutton(label='Electron Impact Ionization (MRBEB Model)', variable=exc_mech_var, onvalue='EII', offvalue='')
 
 # Initialize and configure the charge state mixture interface where we configure the mixture
 def configureCSMix():

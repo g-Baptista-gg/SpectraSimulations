@@ -11,6 +11,7 @@ from tkinter import messagebox
 import numpy as np
 
 #Math imports for interpolation and fitting
+import math
 from scipy.interpolate import interp1d
 from lmfit import Minimizer, Parameters, report_fit, fit_report
 
@@ -112,7 +113,7 @@ def V(T, energy, intens, res, width):
 
 # --------------------------------------------------------- #
 #                                                           #
-#               ELECTRON IMPACT CROSS SECTION               #
+#              IONIZATION IMPACT CROSS SECTION              #
 #                                                           #
 # --------------------------------------------------------- #
 
@@ -208,6 +209,24 @@ def setupMRBEB():
         generalVars.elementMRBEB[label] = lambda b, x: MRBEB(C(Zeff1, Zeff2, n1, n2), b, x) / sum(totals(b, x) for totals in totalMRBEB)
     
     generalVars.elementMRBEB[generalVars.label1[-1]] = generalVars.elementMRBEB[generalVars.label1[-2]]
+
+
+def setupELAMPhotoIoniz():
+    found = False
+    x = []
+    y = []
+    
+    for line in generalVars.ELAMelement:
+        if 'Scatter' in line:
+            break
+        if found:
+            values = line.split()
+            x.append(math.exp(float(values[0])))
+            y.append(math.exp(float(values[1])))
+        if 'Photo' in line:
+            found = True
+    
+    generalVars.ELAMPhotoSpline = interp1d(x, y)
 
 
 # --------------------------------------------------------- #
@@ -659,6 +678,8 @@ def get_overlap(line, beam, FWHM):
         Returns:
             overlap: the overlap
     """
+    EcrossSection = guiVars.exc_mech_var.get()
+    
     if len(line[1]) == 2:
         for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
@@ -671,7 +692,13 @@ def get_overlap(line, beam, FWHM):
                         g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2) * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
                     else:
                         g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2)
-                    return min(l, g) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
+                    
+                    if EcrossSection == 'EII':
+                        return min(l, g) * generalVars.elementMRBEB[line[1]](formationEnergy, x)
+                    elif EcrossSection == 'PIon':
+                        return min(l, g) * generalVars.ELAMPhotoSpline(x)
+                    else:
+                        return min(l, g)
                 
                 if beam > formationEnergy + 10 * pWidth:
                     return integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)[0]
@@ -692,7 +719,13 @@ def get_overlap(line, beam, FWHM):
                         g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2) * np.exp(-((x - beam) / FWHM) ** 2 * np.log(2))
                     else:
                         g = (0.5 * pWidth / np.pi) / ((0.5 * pWidth) ** 2)
-                    return min(l, g) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
+                    
+                    if EcrossSection == 'EIon':
+                        return min(l, g) * min(generalVars.elementMRBEB[line[1][:2]](formationEnergy, x), generalVars.elementMRBEB[line[1][2:]](formationEnergy, x))
+                    elif EcrossSection == 'PIon':
+                        return min(l, g) * generalVars.ELAMPhotoSpline(x)
+                    else:
+                        return min(l, g)
                 
                 if beam > formationEnergy + 10 * pWidth:
                     return integrate.quad(integrand, formationEnergy, formationEnergy + 10 * pWidth)[0]
@@ -708,12 +741,29 @@ def get_AugerBR(line):
     Function to find the branching ratio for a satellite transition from the Auger process of a higher shell
         
         Args:
-            line: the data line of the transition that we want to find the ionization energy
+            line: the data line of the transition that we want to find the branching ratio
         
         Returns:
             BR: the branching ratio
     """
     for level in generalVars.ionizationssat:
+            if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
+                return float(level[7])
+    
+    return 0.0
+
+# Find the branching ratio from Diagram process of a higher shell for the diagram transition
+def get_DiagramBR(line):
+    """
+    Function to find the branching ratio for a diagram transition from the Diagram process of a higher shell
+        
+        Args:
+            line: the data line of the transition that we want to find the branching ratio
+        
+        Returns:
+            BR: the branching ratio
+    """
+    for level in generalVars.ionizationsrad:
             if level[1] == line[1] and level[2] == line[2] and level[3] == line[3]:
                 return float(level[7])
     
@@ -1468,9 +1518,9 @@ def simu_diagram(diag_sim_val, beam, cs = False):
     w1 = [float(row[15]) for row in diag_sim_val]
     
     if beam > 0 and cs:
-        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * row[-2] * row[-1] for row in diag_sim_val]
+        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights) + get_DiagramBR(row)) * row[-2] * row[-1] for row in diag_sim_val]
     elif beam > 0 or cs:
-        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) * row[-1] for row in diag_sim_val]
+        y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights) + get_DiagramBR(row)) * row[-1] for row in diag_sim_val]
     else:
         y1 = [float(row[11]) * (1 - sum(generalVars.shakeweights)) for row in diag_sim_val]
     
@@ -1511,9 +1561,9 @@ def simu_sattelite(sat_sim_val, low_level, high_level, beam, FWHM, cs = False):
             w1s = [float(row[15]) for row in sat_sim_val_ind]
             
             if beam > 0 and cs:
-                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-2] * row[-1] * (1 + get_AugerBR(row)) for row in sat_sim_val_ind]
+                y1s = [float(float(row[11]) * (generalVars.shakeweights[ind] + get_AugerBR(row))) * row[-2] * row[-1] for row in sat_sim_val_ind]
             elif beam > 0 or cs:
-                y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) * row[-1] * (1 + get_AugerBR(row)) for row in sat_sim_val_ind]
+                y1s = [float(float(row[11]) * (generalVars.shakeweights[ind] + get_AugerBR(row))) * row[-1] for row in sat_sim_val_ind]
             else:
                 y1s = [float(float(row[11]) * generalVars.shakeweights[ind]) for row in sat_sim_val_ind]
             
@@ -2425,6 +2475,7 @@ def plot_stick(sim, f, graph_area):
     spectype = guiVars.choice_var.get()
     
     setupMRBEB()
+    setupELAMPhotoIoniz()
     
     # --------------------------------------------------------------------------------------------------------------------------
     if spectype == 'Stick':
@@ -2435,7 +2486,7 @@ def plot_stick(sim, f, graph_area):
     # --------------------------------------------------------------------------------------------------------------------------
     elif spectype == 'Simulation':
         make_simulation(sim, f, graph_area, time_of_click)
-        #for energ in np.linspace(8995, 10500, 5000):
+        #for energ in np.linspace(9900, 11200, 600):
         #    guiVars.excitation_energy.set(energ)
         #    make_simulation(sim, f, graph_area, time_of_click, False)
     # --------------------------------------------------------------------------------------------------------------------------------------
